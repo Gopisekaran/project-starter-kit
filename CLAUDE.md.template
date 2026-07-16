@@ -1,0 +1,138 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Rename this file to `CLAUDE.md` at the repo root and replace every `{{PLACEHOLDER}}`.
+
+## Project Overview
+
+{{APP_NAME}} — {{ONE_LINE_DESCRIPTION}}. Monorepo using pnpm workspaces with a NestJS API
+backend, one or more Next.js web apps, an Expo (React Native) mobile app, and shared libraries.
+
+{{FILL: what exists today — modules, tables, endpoints, which apps are built.}}
+
+## Stack Summary
+
+- **Monorepo:** pnpm workspace, TypeScript everywhere.
+- **Backend:** NestJS (modules, DI, guards, pipes) + Drizzle ORM + PostgreSQL. Queue-based
+  processing (Redis) for batch/heavy work.
+- **Web:** Next.js (App Router) for the app; a separate Next.js site for marketing/landing.
+- **Mobile:** Expo (React Native), single codebase iOS/Android — mirrors the web app's behavior.
+- **Auth:** Better Auth — sessions on web, bearer tokens on mobile; shared roles.
+- **Data layer:** Postgres for persisted data; Redis for sessions, rate-limits, real-time counters, and queues.
+- **Realtime:** {{Socket.io | Pusher}} — decide per project.
+- **Notifications:** Email via {{ZeptoMail | Resend}}; OTP via MSG91 (India) / Twilio (intl); in-app push.
+- **Payments:** {{Stripe | Razorpay}} — region-routed.
+- **Deployment:** Vercel (web) + {{backend host}}.
+
+See `docs/TECH_STACK.md` for the full canonical stack.
+
+## Commands
+
+### Development
+
+```bash
+pnpm dev                              # Run all apps in parallel
+pnpm --filter {{api}} dev             # NestJS API
+pnpm --filter {{web}} dev             # Main web app
+pnpm --filter {{marketing}} dev       # Marketing / landing site
+pnpm --filter {{mobile}} dev          # Expo mobile app
+```
+
+### Build
+
+```bash
+pnpm build                            # Build all packages
+pnpm --filter {{web}} build           # Build a single app
+```
+
+### Test / Lint / Type-check
+
+```bash
+pnpm test                             # Run all tests
+pnpm --filter {{api}} test            # Test one package
+pnpm lint                             # Lint all packages
+pnpm --filter {{web}} type-check      # Type-check one package
+```
+
+### Database (Drizzle + PostgreSQL)
+
+```bash
+pnpm db:generate                      # Generate migrations from schema changes
+pnpm db:push                          # Push schema directly (dev only)
+pnpm db:migrate                       # Run migrations
+pnpm db:studio                        # Open Drizzle Studio
+pnpm db:seed                          # Seed master data (roles, categories, config)
+```
+
+## Workspace Layout
+
+```
+apps/
+  api/            # NestJS backend
+  web/            # Next.js main app
+  marketing/      # Next.js public marketing site (optional)
+  mobile/         # Expo React Native app
+libs-common/      # Shared types + API handler (used by web + mobile)
+libs-web/         # Web-only shared UI + utils
+libs-mobile/      # Mobile-only shared UI + theme + utils
+docs/             # Repo documentation (see docs/README.md)
+.claude/agents/   # Specialized Claude Code agents (frontend/backend/architecture/infra)
+```
+
+## Conventions
+
+### Backend (NestJS)
+
+- Modules under `apps/api/src/modules/` follow: `*.controller.ts`, `*.service.ts`, `*.module.ts`,
+  `dto/` (Zod schemas), `utils/`.
+- Guards for auth, roles/permissions (RBAC), and rate-limiting; pipes for validation.
+- Validate request bodies/queries with Zod DTOs via a validation pipe. Use `z.coerce.*` for query params.
+- Cross-field validation lives in the DTO (Zod `.refine()`), not the service.
+
+### Database (Drizzle)
+
+- Schema under `apps/api/src/db/schema/`. Text-based primary keys; `created_at` / `updated_at`
+  with timezone on every table. Infer types via `typeof table.$inferSelect`.
+- Master data (roles, categories, config) is seeded — environments start consistent.
+
+### Web (Next.js)
+
+- App Router with route groups for auth / onboarding / protected areas.
+- Forms with 3+ fields use React Hook Form + `zodResolver`. Mirror backend Zod refinements on the client.
+- Wrap `useSearchParams()` in a `<Suspense>` boundary.
+
+### Mobile (Expo)
+
+- Mirrors the web app's behavior and validation. Never change the API for behavior that already
+  exists on web — new features ship on both.
+- React Query for server state; bearer token in secure storage.
+
+## Known Gotchas
+
+<!-- Fill this in as you hit repo-specific traps. Examples of the kind of thing that belongs here:
+     monorepo hoisting quirks, framework version requirements, test setup requirements,
+     env var footguns, ID vs display-ID resolution, etc. -->
+
+_…_
+
+## Pointers
+
+- **Docs:** `docs/README.md` (entry point) — overview, architecture, API, modules, pages, decisions.
+- **Agents:** `.claude/agents/*.md` — frontend / backend / architecture / infra specialists.
+- **Workflow:** `WORKFLOW.md` — tracking, execution flow, and the Definition of Done loop.
+
+## Formatting
+
+Prettier: {{double quotes, 2-space indent, 120 char width, trailing commas es5, LF}}. See `.prettierrc`.
+
+## Environment Variables
+
+Copy `.env.example` to `.env`. Required at minimum:
+
+- `DATABASE_URL` — PostgreSQL connection string
+- `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` — auth config
+- `{{FRONTEND_URL}}`, `{{ADMIN_URL}}` — CORS origins
+- `REDIS_URL` — queues / sessions / rate-limits
+- `NEXT_PUBLIC_API_URL` (web) / `EXPO_PUBLIC_API_URL` (mobile)
+
+{{Add provider keys as integrations are switched on: email, OTP, push, payments, realtime.}}
