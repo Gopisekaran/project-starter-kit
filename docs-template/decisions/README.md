@@ -12,7 +12,7 @@ this way?"
 | ADR | Title | Status |
 |---|---|---|
 | [0000](./0000-template.md) | Template (do not accept) | — |
-| [0001](./0001-example.md) | {{Short decision title}} | {{Accepted}} |
+| [0001](./0000-template.md) | {{Short decision title}} | {{Accepted}} |
 
 ## Conventions
 

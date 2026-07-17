@@ -148,5 +148,12 @@ reads on every session.
 
 ---
 
-You're ready. From here, follow [`WORKFLOW.md`](WORKFLOW.md): create tasks as GitHub Issues,
-execute them via Claude Code, and close the Definition of Done loop (issue closed + per-page doc updated).
+You're ready — that's the setup done (Stage 0 of nine).
+
+**Next: [`GETTING_STARTED.md`](GETTING_STARTED.md)** picks up here and walks the rest of the
+lifecycle: discuss the product → feature docs → branding → design system → schema → plan →
+implement → test → page doc, naming which agent to use at each stage.
+
+Once you're building day-to-day, [`WORKFLOW.md`](WORKFLOW.md) is the loop you live in: create
+tasks as GitHub Issues, execute them via Claude Code, and close the Definition of Done loop
+(issue closed + per-page doc updated).

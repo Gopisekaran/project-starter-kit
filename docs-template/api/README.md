@@ -90,8 +90,8 @@ Query: `page` (1-indexed), `limit` (default {{20}}, max {{100}}), `sort` (option
 
 > Link out to each per-module doc.
 
-- [{{users}}](./users.md) — {{one line}}
-- [{{orders}}](./orders.md) — {{one line}}
+- [{{users}}](./_template.md) — {{one line}}
+- [{{orders}}](./_template.md) — {{one line}}
 
 ---
 

@@ -50,6 +50,8 @@ const CATEGORY_META = [
   ["Project", "Project"],
   ["Docs root", "Docs root"],
   ["overview", "Overview"],
+  ["features", "Features (specs)"],
+  ["branding", "Branding"],
   ["architecture", "Architecture"],
   ["api", "API"],
   ["modules", "Modules"],

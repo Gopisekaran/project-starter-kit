@@ -310,6 +310,14 @@ await db.insert(roles)
 
 ## 4. Database Conventions
 
+**Before any schema work, read `docs/architecture/data.md`** — the entity map, the conventions, and (most importantly) the **invariants**. It's the design; the schema file is the implementation. If they disagree, stop and say so rather than picking one.
+
+**When you add or change schema, update `data.md` in the same PR** — and for every invariant, name the layer that enforces it *and any gap where it doesn't*:
+
+> `role` must match `gender`. Enforced via a Zod `.refine()` on `createProfileSchema` (`…/dto/create-profile.dto.ts`). **The DB has no CHECK constraint — the DTO is the only guard.**
+
+That last sentence is the valuable part. A rule stated without its enforcement layer is a rule someone will assume the database is holding. Where an invariant is enforced in both places, say so and say why (e.g. "DB enforces it; the DTO refinement exists so clients get a clean 400 instead of a 500 constraint violation").
+
 - **Primary keys:** `text("id").primaryKey()` with string IDs (`{entity}_{ts36}_{random}`). Never auto-increment.
 - **Timestamps:** `timestamp("col", { withTimezone: true })`; `created_at` + `updated_at` on every table.
 - **Enums:** `text("col", { enum: [...] })` — NOT `pgEnum`.
@@ -401,5 +409,7 @@ Common codes: `UNAUTHORIZED` (401), `FORBIDDEN` (403), `VALIDATION_ERROR` (400),
 
 1. **Update the GitHub issue** — reference it in the PR (`Closes #N`) and move the card to **Done** on the Projects board.
 2. **Write/refresh the feature doc** — add or update the relevant file under `docs/modules/` (or `docs/pages/` for a user-facing surface) describing the endpoints, schema, and rules you added.
+3. **Update `docs/architecture/data.md`** if you touched the schema — new tables/columns, and any invariant with its enforcement layer and honest gaps (§4).
 
-See `WORKFLOW.md` at the kit root for the full branch → PR → review → merge flow.
+See `WORKFLOW.md` at the kit root for the full branch → PR → review → merge flow, and
+`GETTING_STARTED.md` for where this sits in the project lifecycle.

@@ -15,8 +15,10 @@ Nothing here is tied to any specific product.
 
 | File / folder                                                | Purpose                                                                          |
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| [`GETTING_STARTED.md`](GETTING_STARTED.md)                   | **Start here.** The nine-stage flow from empty repo to shipped feature, and which agent to use at each stage. |
 | [`TECH_STACK.md`](TECH_STACK.md)                             | The canonical stack every project adopts, plus the per-project decisions to make. |
-| [`WORKFLOW.md`](WORKFLOW.md)                                 | Operating model: docs, tracking, execution flow, and the Definition of Done loop. |
+| [`WORKFLOW.md`](WORKFLOW.md)                                 | Operating model: docs, tracking, execution flow, the Definition of Done loop, and the change-request loop. |
+| [`PROJECT_PLAN.md`](PROJECT_PLAN.md)                         | Plan template: milestones as versions, exit criteria, feature docs → issues.       |
 | [`CORE_DOCUMENT.md`](CORE_DOCUMENT.md)                       | Kickoff "Application Definition" template to align the team before building.       |
 | [`CLAUDE.md.template`](CLAUDE.md.template)                   | Genericized `CLAUDE.md` for a new repo — rename and fill placeholders.             |
 | [`SETUP.md`](SETUP.md)                                       | Step-by-step to start a new project from this kit.                                 |
@@ -30,17 +32,15 @@ Nothing here is tied to any specific product.
 > Note: the `docs-template/` docs skeleton and `.claude/agents/` are referenced by `SETUP.md`
 > and copied into a new repo during setup.
 
-## Quick start (10 steps)
+## Quick start
 
-1. **Create the repo + pnpm workspace** — `apps/{api,web,marketing,mobile}`, `libs-*`.
-2. **Copy templates in** — `docs-template/` → `docs/`, `.claude/agents/`, `scripts/`, and `github/` templates → `.github/`.
-3. **Copy the CI workflow** — `github/workflows/ci.yml` → `.github/workflows/ci.yml`; fill the app-name placeholders.
-4. **Connect the GitHub MCP** — in Claude Code. (Docs need no MCP — they're in the repo.)
-5. **Install the CLI** — `brew install gh && gh auth login`, then `gh auth refresh -s project,read:project`.
-6. **Create labels** — `bash github/labels.sh`.
-7. **Create the Projects board** — Status + Deploy fields (see `github/projects-board.md`).
-8. **Set up the docs viewer** — `pnpm add -D -w marked`, add the `docs:viewer` script, git-ignore `docs/viewer.html`.
-9. **Fill `CORE_DOCUMENT.md`** — during kickoff; lock the per-project decisions.
-10. **Set up `CLAUDE.md`** — rename `CLAUDE.md.template` → `CLAUDE.md` and fill placeholders.
+**Read [`GETTING_STARTED.md`](GETTING_STARTED.md).** It's the whole flow — set up the repo,
+discuss the product, write the feature docs, define the branding and design system, design the
+schema, turn it all into milestones and issues, then implement / review / test / document.
 
-Full detail in [`SETUP.md`](SETUP.md). Day-to-day process in [`WORKFLOW.md`](WORKFLOW.md).
+Two supporting reads: [`SETUP.md`](SETUP.md) for the setup commands, and
+[`WORKFLOW.md`](WORKFLOW.md) for the day-to-day task loop once you're building.
+
+**The one rule:** docs first, always. Everything before the plan is thinking; everything after
+is typing. Skipping to the typing doesn't remove the thinking — it just relocates it into code,
+where it costs more.

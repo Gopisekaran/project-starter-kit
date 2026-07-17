@@ -135,6 +135,32 @@ const profile = res?.data;
 
 ## 3. Implementation Patterns
 
+### 3.0 Before you write any UI (read these first)
+
+Two docs govern every pixel. Read them **before** the first component, not after review:
+
+1. **`docs/branding/brand.md`** — the feel, the voice, and what the product must *never*
+   feel like. Microcopy, empty states, and error text follow the voice table here.
+2. **`docs/design/design-system.md`** — the semantic tokens, type scale, spacing/radius/
+   elevation, and the component inventory with their states.
+
+Rules that follow from them:
+
+- **Use semantic tokens. Never raw hex, and never `--brand-*` directly in a component.**
+  Brand colors are identity; components consume *roles* (`--primary`, `--destructive`,
+  `--muted-fg`). That's what makes dark mode and rebranding a token remap instead of a sweep.
+- **Check the component inventory before building anything new.** If it's in the table, use it.
+- **Missing a token? Propose it into `design-system.md` first, then use it.** Do not invent a
+  one-off value in a component — a single hardcoded hex is how a design system starts dying.
+- **Missing a component?** Add it to the inventory table in the same PR that adds the component.
+- Dark mode is a token remap. If you're reaching for a `dark:` override, that's a missing
+  token — add the token instead.
+- Every list gets **empty, loading, and error** states. Every interactive element gets a
+  visible focus state using `--ring`. These are non-negotiables in the design system, not
+  suggestions.
+
+If either doc is missing or contradicts the code, **stop and say so** — don't guess the brand.
+
 ### 3.1 New protected page
 
 Create `src/app/(main)/<route>/page.tsx` as a `"use client"` component; it's auto-protected by the group layout. Handle all four states:
@@ -280,7 +306,7 @@ Import all standard primitives from `@libs-web/ui-components` (Button, Card, Inp
 ### Styling
 
 - TailwindCSS v4, CSS-based config; theme via CSS variables in `globals.css`. No `tailwind.config.js`.
-- Use **semantic tokens** (`text-foreground`, `bg-background`, `border-border`, `bg-muted`, `bg-primary`) — not raw colors like `bg-white`/`text-gray-900`.
+- Use **semantic tokens** (`text-foreground`, `bg-background`, `border-border`, `bg-muted`, `bg-primary`) — not raw colors like `bg-white`/`text-gray-900`. The token set and its meaning are defined in `docs/design/design-system.md` (§3.0).
 - Mobile-first: default styles target mobile, layer `sm: md: lg: xl:` up.
 - Simple transitions via Tailwind (`transition-colors`); complex motion via Framer Motion.
 
@@ -295,6 +321,7 @@ Import all standard primitives from `@libs-web/ui-components` (Button, Card, Inp
 - `FieldControlled` + `zodResolver` for forms; `NumberInput` for numeric fields.
 - Skeleton for every loading state; `EmptyState` for zero-data; `next/image` for images.
 - Semantic color tokens; workspace aliases for cross-library imports.
+- Read `docs/branding/brand.md` + `docs/design/design-system.md` before writing UI (§3.0).
 - Run `pnpm --filter <app> type-check` before calling work done.
 
 ### Don't
@@ -302,6 +329,7 @@ Import all standard primitives from `@libs-web/ui-components` (Button, Card, Inp
 - Store API data in Redux, or fetch with `useEffect` (use React Query).
 - Create `tailwind.config.*` (v4 is CSS-based) or use Zod v3 APIs.
 - Use relative imports across library boundaries, or `next/navigation` in an i18n app (use `@/i18n/navigation`).
+- Hardcode a color, font, radius, or spacing value — use a token, or add one to `design-system.md` first.
 - Hardcode config that belongs in a constant/config module; use `any`; leave mutations without error handling.
 - Implement security on the client — the API enforces it; the client only mirrors it for UX.
 
@@ -311,5 +339,7 @@ Import all standard primitives from `@libs-web/ui-components` (Button, Card, Inp
 
 1. **Update the GitHub issue** — reference it in the PR (`Closes #N`) and move the card to **Done** on the Projects board.
 2. **Write/refresh the page doc** — add or update the relevant file under `docs/pages/` (or `docs/modules/` for a cross-cutting feature) describing the route, states, and data hooks it uses.
+3. **Confirm design-system adherence** — no raw hex/font/spacing values; any new token or component is recorded in `docs/design/design-system.md` in this same PR.
 
-See `WORKFLOW.md` at the kit root for the full branch → PR → review → merge flow.
+See `WORKFLOW.md` at the kit root for the full branch → PR → review → merge flow, and
+`GETTING_STARTED.md` for where this sits in the project lifecycle.

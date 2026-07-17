@@ -35,12 +35,14 @@ change**, or you're reading a stale snapshot.
 ## Where to start
 
 - **New to the codebase?** → [`overview/product.md`](./overview/product.md) then [`architecture/system.md`](./architecture/system.md)
+- **About to build something?** → [`features/`](./features/README.md) — the spec comes first
 - **Looking up an API?** → [`api/README.md`](./api/README.md)
-- **Trying to understand a feature?** → [`modules/`](./modules/)
+- **Trying to understand a built feature?** → [`modules/`](./modules/)
 - **Wondering why we made a decision?** → [`decisions/`](./decisions/)
 - **Working on a screen?** → [`pages/`](./pages/)
+- **Writing any UI?** → [`branding/`](./branding/README.md) + [`design/design-system.md`](./design/design-system.md) — read both first
 - **Operations/runbooks?** → [`operations/`](./operations/)
-- **Design specs?** → [`design/`](./design/)
+- **Design specs for one surface?** → [`design/`](./design/)
 
 ## Quick facts
 
@@ -58,14 +60,19 @@ change**, or you're reading a stale snapshot.
 ```
 docs/
 ├── overview/        # what this product is and who it's for
-├── architecture/    # how the system is built
+├── features/        # functional specs — written BEFORE the code
+├── branding/        # identity: the feel, voice, brand palette
+├── design/          # design-system.md (tokens/components) + per-surface specs
+├── architecture/    # how the system is built (incl. data.md — schema + invariants)
 ├── api/             # endpoints, auth, conventions, per-module
-├── modules/         # cross-cutting feature deep-dives
+├── modules/         # feature deep-dives — written AFTER the code
 ├── decisions/       # Architecture Decision Records (ADRs)
 ├── operations/      # production runbooks
-├── pages/           # per-screen docs (one file per screen)
-└── design/          # design specs (visual direction, tokens, components)
+└── pages/           # per-screen docs (one file per screen), written after it ships
 ```
+
+**Before vs after.** `features/` is what we agreed to build; `modules/` and `pages/` are what
+exists. Both survive — the first explains intent, the second explains reality.
 
 ## Conventions
 
@@ -76,8 +83,15 @@ docs/
   should not exist in finalized docs; each one is a bug or a tracked open question.
 - **ADRs are immutable once accepted.** To change a decision, write a new ADR that
   supersedes the old one — never edit the accepted record. See [`decisions/`](./decisions/).
+- **Spec before code.** Every feature has a doc in [`features/`](./features/README.md) before
+  its first line of code. Its user stories become the GitHub issues.
 - **Per-page discipline.** Every screen gets its own doc in [`pages/`](./pages/),
   updated whenever that screen is completed or changed. Copy [`pages/_template.md`](./pages/_template.md).
+- **Tokens, not values.** UI references semantic tokens from
+  [`design/design-system.md`](./design/design-system.md) — never raw hex. A new token is
+  recorded there before it's used.
+- **Requirements changed? Doc first.** Update the feature doc, re-plan, then code — never the
+  reverse. A change in code but not in docs is invisible to whoever comes next.
 - **Docs link to future-state specs** when a feature is deferred — they don't
   pretend the feature doesn't exist.
 

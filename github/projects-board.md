@@ -13,6 +13,9 @@ single-select fields: **Status** and **Deploy**.
 `Status` tracks where the work is in the flow. `Deploy` tracks where that work has shipped —
 so a card can be **Done** on Status but still **Staging** on Deploy until it reaches production.
 
+**Scheduling lives outside the board:** a **Milestone** says *which version* an issue ships in.
+See [Milestones](#milestones) below.
+
 ---
 
 ## 0. Authenticate `gh` with the Projects scope
@@ -141,9 +144,45 @@ If you'd rather click through it:
 
 ---
 
+## Milestones
+
+**A milestone is a version** — `v0.1`, `v0.2`, `v1.0` — and it's what schedules an issue.
+Milestones are a repo feature, not a board field, so they work alongside Status/Deploy:
+
+| Question | Answered by |
+|---|---|
+| *Which version does this ship in?* | Milestone |
+| *Where is this right now?* | Status |
+| *Has it reached production?* | Deploy |
+| *Is this live scope or deferred?* | `phase:1` / `phase:2` label |
+
+Create them once (**Issues → Milestones → New milestone**, or via the API), then assign:
+
+```bash
+# create a milestone
+gh api repos/{{owner}}/{{repo}}/milestones -f title="v0.1" -f description="Auth & onboarding"
+
+# assign an issue to it
+gh issue edit 42 --milestone "v0.1"
+
+# create an issue already scheduled
+gh issue create --title "[Feature] …" --label "type:feature,area:web,priority:P2,phase:1" \
+  --milestone "v0.1"
+
+# what's left in this version
+gh issue list --milestone "v0.1" --state open
+```
+
+The milestone page gives you a progress bar and burn-down for free. A `phase:2` issue with no
+milestone is deferred scope — that's valid, not an oversight.
+
+Scope and exit criteria per milestone live in [`../PROJECT_PLAN.md`](../PROJECT_PLAN.md).
+
+---
+
 ## Day-to-day
 
-- New issue → **Backlog** (or **Todo** once scoped).
+- New issue → **Backlog** (or **Todo** once scoped). Assign its **milestone** if it's scheduled.
 - Start work → **In Progress**.
 - Open PR → **In Review**; set `Deploy: Staging` when it lands on staging.
 - Merge + close issue (`Closes #N`) → **Done**; set `Deploy: Production` after the prod release.

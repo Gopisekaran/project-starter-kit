@@ -103,8 +103,15 @@ Handle every state (loading skeleton, error, empty, success) just like web. Use 
 
 ## 4. UI & Styling
 
-- Build screens from `@libs-mobile/mobile-components` primitives; add mobile-only feature components under `apps/mobile/src/…`.
-- Style with styled-components/native, pulling colors/spacing/typography from `useMobileTheme()` — never hardcode hex values. Support light/dark themes via the theme tokens.
+**Before you write any UI, read these two docs** — they govern every pixel, on mobile exactly as on web:
+
+1. **`docs/branding/brand.md`** — the feel, the voice, what the product must *never* feel like. Microcopy, empty states, and error text follow the voice table here.
+2. **`docs/design/design-system.md`** — semantic tokens, type scale, spacing/radius/elevation, and the component inventory with states.
+
+The mobile theme (`@libs-mobile/mobile-theme`) is the **native expression of the same design system** — same token names, same meanings, different runtime. If a token exists on web but not in the mobile theme, that's a gap to close, not a reason to hardcode. Missing a token entirely? Propose it into `design-system.md` first, then add it to the theme. If either doc is missing or contradicts the code, **stop and say so** — don't guess the brand.
+
+- Build screens from `@libs-mobile/mobile-components` primitives; add mobile-only feature components under `apps/mobile/src/…`. Check the design system's component inventory before building anything new.
+- Style with styled-components/native, pulling colors/spacing/typography from `useMobileTheme()` — never hardcode hex values. Support light/dark themes via the theme tokens (dark mode is a token remap, never a per-component override).
 - Respect safe areas (`react-native-safe-area-context`) on headers, tab bars, and bottom action bars.
 - Prefer platform-appropriate UX; keep iOS/Android consistent. Reserve heavy animation for where it adds value.
 
@@ -133,6 +140,7 @@ const Title = styled.Text`
 - Mirror the finalized web app's behavior and validation for every shared feature.
 - Reuse `@libs-common/api-handler` hooks and the shared backend; add features to both web and mobile.
 - Use Bearer auth via `expo-secure-store` + `setupMobileAPI()`.
+- Read `docs/branding/brand.md` + `docs/design/design-system.md` before writing UI (§4).
 - Pull all styling from theme tokens; handle loading/error/empty/success on every screen.
 - Type-check before finishing (verify on a device/emulator when practical — emulators can be flaky, so don't over-invest in screenshots).
 
@@ -140,7 +148,8 @@ const Title = styled.Text`
 
 - Change the API to alter existing behavior — the endpoints already exist and the web contract is the reference.
 - Add Redux, Tailwind, or the web UI-components library to mobile.
-- Hardcode colors/spacing or bypass the shared data hooks for existing behavior.
+- Hardcode colors/spacing/fonts, or invent a one-off value — use a theme token, or add one to `design-system.md` first.
+- Bypass the shared data hooks for existing behavior.
 - Store the auth token anywhere other than `expo-secure-store`.
 
 ---
@@ -149,5 +158,7 @@ const Title = styled.Text`
 
 1. **Update the GitHub issue** — reference it in the PR (`Closes #N`) and move the card to **Done** on the Projects board.
 2. **Write/refresh the feature doc** — add or update the relevant file under `docs/pages/` (or `docs/modules/`), noting any mobile-specific behavior (e.g. Bearer auth, tab layout) that differs from web.
+3. **Confirm design-system adherence** — no hardcoded colors/spacing/fonts; any new token or component is recorded in `docs/design/design-system.md` in this same PR.
 
-See `WORKFLOW.md` at the kit root for the full branch → PR → review → merge flow.
+See `WORKFLOW.md` at the kit root for the full branch → PR → review → merge flow, and
+`GETTING_STARTED.md` for where this sits in the project lifecycle.

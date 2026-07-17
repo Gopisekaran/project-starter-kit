@@ -49,6 +49,30 @@ Zod, React Query, optional Redux Toolkit, Expo for mobile.
 
 Apply systematically; skip sections irrelevant to the files changed.
 
+### Docs & intent (check this first)
+
+The cheapest bug to catch is the one where correct code implements the wrong thing.
+
+| Check | What to look for |
+|-------|------------------|
+| **Feature doc exists** | The PR links an issue, and that issue links a doc under `docs/features/`. Code with no agreed spec is a **Major** finding — the review can't judge correctness without knowing intent. |
+| **Matches the spec** | The change satisfies the acceptance criteria of its user story, and doesn't quietly do more. Scope beyond the story = the doc should have changed first. |
+| **Business rules** | Rules the feature doc declares (`BR-*`) are enforced server-side, not assumed. |
+| **Page doc** | Any completed or changed screen has a created/updated doc under `docs/pages/`. Missing = **Major**; it's half the Definition of Done. |
+| **Schema docs** | Schema changes are reflected in `docs/architecture/data.md`, with each invariant naming its enforcement layer and any gap. |
+| **ADR** | A non-obvious architectural call has an ADR under `docs/decisions/`, or a reason it doesn't need one. |
+
+### Design system (any UI change)
+
+| Check | What to look for |
+|-------|------------------|
+| **Semantic tokens only** | No raw hex, rgb, or arbitrary spacing/font values. Components reference roles (`--primary`, `bg-muted`, `theme.colors.*`), never `--brand-*` directly. A hardcoded value is a **Major** finding — it's invisible to dark mode and to a rebrand. |
+| **New tokens recorded** | A new token/component appears in `docs/design/design-system.md` in the same PR, not "later". |
+| **Inventory reuse** | Nothing re-implements a component already in the design system's inventory. |
+| **Dark mode** | Works via the token remap. A per-component `dark:` override signals a missing token. |
+| **Required states** | Every list has empty / loading / error. Every interactive element has a visible focus state. Every async action is double-submit guarded. |
+| **Brand fit** | Microcopy matches the voice table in `docs/branding/brand.md` — and nothing lands in the "must never feel like" list. |
+
 ### Code quality
 
 | Check | What to look for |
@@ -178,10 +202,12 @@ codes match the documented contract. New/changed endpoints are added to `docs/ap
 2. No duplicating shared UI components.
 3. No server state in Redux — that's React Query's job.
 4. No authenticated page outside the guarded route group.
+5. No hardcoded colors/fonts/spacing — semantic tokens only; a new token lands in `docs/design/design-system.md` first.
 
 **Cross-cutting**
 1. Never commit `.env`/secrets; update `.env.example` for new vars.
 2. Library packages never put framework deps in `dependencies` (use `peerDependencies`).
+3. A completed or changed screen ships its page doc in the same PR. Undocumented work is unfinished work.
 
 ---
 
