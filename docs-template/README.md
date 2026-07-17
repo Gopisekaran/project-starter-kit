@@ -10,6 +10,28 @@ This is the engineering documentation for **{{PROJECT_NAME}}** — {{ONE_LINE_DE
 > is live vs. what is planned/deferred). If you use phases or milestones, name the
 > current one and where future-state specs live.
 
+## Reading these docs: `pnpm docs:viewer`
+
+These docs are markdown in the repo — that's the single source of truth. For a readable hub,
+build the offline viewer:
+
+```bash
+pnpm docs:viewer      # writes docs/viewer.html
+open docs/viewer.html # or just double-click it
+```
+
+It's **one self-contained file** (marked + every doc + CSS + JS inlined), so it works from
+`file://`, offline, with no server and no CDN. You get a category sidebar, rendered GFM
+tables, full-text search with excerpts, light/dark following the OS, and deep links
+(`#docs/modules/orders.md`).
+
+`docs/viewer.html` is git-ignored — it's generated. **Re-run `pnpm docs:viewer` after any doc
+change**, or you're reading a stale snapshot.
+
+> **Why not GitHub Pages?** Pages sites are public even when the repo is private —
+> access-controlled Pages is GitHub Enterprise Cloud only. For a private repo, publishing docs
+> to Pages would leak them. The local viewer keeps docs private and works offline.
+
 ## Where to start
 
 - **New to the codebase?** → [`overview/product.md`](./overview/product.md) then [`architecture/system.md`](./architecture/system.md)

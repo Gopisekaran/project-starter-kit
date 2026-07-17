@@ -1,0 +1,92 @@
+name: CI
+
+# Add `develop` alongside `main` if you run a staging branch:
+#   branches: [main, develop]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref — a new push makes the previous run moot.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.25.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      # Replace {{WEB_APP}} / {{ADMIN_APP}} with the package names from each app's
+      # package.json "name" field. Add or drop a step per app in the workspace.
+      - name: Type check web app
+        run: pnpm --filter {{WEB_APP}} type-check
+
+      - name: Type check admin app
+        run: pnpm --filter {{ADMIN_APP}} type-check
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.25.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # These map to root package.json scripts (e.g. "test:api": "pnpm --filter api test").
+      - name: Run backend tests
+        run: pnpm test:api
+
+      - name: Run web tests
+        run: pnpm test:web
+
+      - name: Run admin tests
+        run: pnpm test:admin
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    # Build only after lint + tests pass — fail fast on the cheap checks first.
+    needs: [lint-typecheck, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.25.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build

@@ -15,58 +15,121 @@ so a card can be **Done** on Status but still **Staging** on Deploy until it rea
 
 ---
 
-## Create the board — CLI
-
-Requires `gh` with the Projects scope:
+## 0. Authenticate `gh` with the Projects scope
 
 ```bash
-gh auth refresh -s project,read:project
+brew install gh
+gh auth login                              # GitHub.com → HTTPS → browser
+gh auth refresh -s project,read:project    # REQUIRED: default scopes do NOT include Projects
+gh auth status                             # confirm scopes include 'project' and 'repo'
 ```
 
-Create the project (owner can be a user or an org):
+> ⚠️ The `gh auth refresh` line is not optional. `gh auth login`'s default scopes exclude
+> Projects, so every `gh project` command below fails until you add them.
+
+## 1. Create the labels
 
 ```bash
-# For a user account
-gh project create --owner "@me" --title "Product Board"
-
-# For an org
-gh project create --owner "your-org" --title "Product Board"
+bash github/labels.sh   # idempotent — uses `gh label create ... --force`
 ```
 
-List projects to grab the number:
+## 2. Create the board
 
 ```bash
-gh project list --owner "@me"
+gh project create --owner <OWNER> --title "<Project>" --format json
 ```
 
-Add the single-select fields (replace `PROJECT_NUMBER` and `--owner`):
+> ⚠️ **Gotcha:** this call may return a **504 Gateway Timeout but still create the project.**
+> Before retrying, always check:
+>
+> ```bash
+> gh project list --owner <OWNER>
+> ```
+>
+> Retrying blind gives you two boards.
+
+Note the project **number** from `gh project list` — every command below takes it as `<NUM>`.
+`<OWNER>` is a user (`@me`) or an org.
+
+## 3. Create the Deploy field
 
 ```bash
-gh project field-create PROJECT_NUMBER --owner "@me" \
-  --name "Status" --data-type SINGLE_SELECT \
-  --single-select-options "Backlog,Todo,In Progress,In Review,Done"
-
-gh project field-create PROJECT_NUMBER --owner "@me" \
+gh project field-create <NUM> --owner <OWNER> \
   --name "Deploy" --data-type SINGLE_SELECT \
   --single-select-options "Not deployed,Staging,Production"
 ```
 
-> Note: Projects v2 auto-creates a default `Status` field with `Todo / In Progress / Done`.
-> Either edit that field's options in the UI to match the five above, or delete it and create
-> the `Status` field with the CLI command shown. Field names must be unique.
+## 4. Extend the built-in Status field
 
-Add an issue to the board:
+> ⚠️ **Gotcha:** the board ships with a built-in `Status` field carrying only
+> **Todo / In Progress / Done**. You can't `field-create` a second field named `Status`
+> (names must be unique), so extend the existing one via GraphQL — and do it **while the
+> board is still empty**, before any items reference the options.
 
 ```bash
-gh project item-add PROJECT_NUMBER --owner "@me" \
-  --url https://github.com/OWNER/REPO/issues/123
+SID=$(gh project field-list <NUM> --owner <OWNER> --format json \
+  | python3 -c "import sys,json;d=json.load(sys.stdin);print(next(f['id'] for f in d['fields'] if f['name']=='Status'))")
+
+gh api graphql -f query='
+mutation($fid:ID!){
+  updateProjectV2Field(input:{ fieldId:$fid, singleSelectOptions:[
+    {name:"Backlog",color:GRAY,description:"Not started"},
+    {name:"Todo",color:RED,description:"Ready to pick up"},
+    {name:"In Progress",color:YELLOW,description:"Being worked on"},
+    {name:"In Review",color:BLUE,description:"Awaiting review"},
+    {name:"Done",color:GREEN,description:"Complete"}
+  ]}){ projectV2Field { ... on ProjectV2SingleSelectField { name options { name } } } }
+}' -f fid="$SID"
+```
+
+The mutation **replaces** the whole option set, so list all five — any option you omit is dropped.
+
+## 5. Add issues and set fields
+
+```bash
+iid=$(gh project item-add <NUM> --owner <OWNER> --url <ISSUE_URL> --format json | jq -r .id)
+
+gh project item-edit --id "$iid" \
+  --project-id "<PVT_...>" \
+  --field-id "<FIELD_ID>" \
+  --single-select-option-id "<OPTION_ID>"
+```
+
+Get the project id (`PVT_…`), field ids, and option ids from:
+
+```bash
+gh project list --owner <OWNER> --format json               # project id
+gh project field-list <NUM> --owner <OWNER> --format json   # field + option ids
+```
+
+> ⚠️ **Gotcha:** `item-edit` takes the **project id** (`PVT_…`), not the project **number**.
+
+## 6. Verify
+
+> ⚠️ **Gotcha:** `gh project item-list` defaults to **30 items**. Pass `--limit 100` or
+> you'll conclude items are missing when they're just paginated out.
+
+The open-issue count should match the board item count:
+
+```bash
+gh issue list --state open --limit 100
+gh project item-list <NUM> --owner <OWNER> --limit 100
+```
+
+Confirm the Status field really carries all five options:
+
+```bash
+gh project field-list <NUM> --owner <OWNER> --format json \
+  | jq '.fields[] | select(.name=="Status").options[].name'
 ```
 
 ---
 
 ## Create the board — UI
 
-1. Go to the org/user **Projects** tab → **New project** → **Board** layout → name it (e.g. "Product Board").
+If you'd rather click through it:
+
+1. Go to the org/user **Projects** tab → **New project** → **Board** layout → name it.
 2. The board ships with a **Status** field. Open its settings and set the options to:
    `Backlog`, `Todo`, `In Progress`, `In Review`, `Done`.
 3. Add a new field: **+ → New field → Single select**, name it **Deploy**, options:

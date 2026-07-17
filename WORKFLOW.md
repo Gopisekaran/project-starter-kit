@@ -9,11 +9,12 @@ how work is tracked, how tasks are executed, and what "done" means.
 
 - Docs live in the repo under `docs/`. The structure matches the `docs-template/` skeleton
   (`overview/`, `architecture/`, `api/`, `modules/`, `pages/`, `decisions/`).
-- Docs are **optionally mirrored to a Notion workspace**. Notion is the readable hub for
-  the wider team — the docs plus the roadmap / releases live there.
-- The repo `docs/` is the source of truth for anything an engineer needs while coding
-  (API contracts, per-page specs, ADRs). Notion is the source of truth for planning
-  (roadmap, releases) and the human-friendly reading surface.
+- The repo `docs/` is the **single source of truth** — API contracts, per-page specs, ADRs,
+  roadmap, release notes. There is no second docs system to keep in sync.
+- Docs are reviewed in PRs and updated in the **same PR as the code** they describe.
+- The readable hub is the **offline docs viewer** — `pnpm docs:viewer` builds
+  `docs/viewer.html`, a single self-contained page with a sidebar, search, and rendered
+  tables. See §5 and [`SETUP.md`](SETUP.md).
 
 ## 2. Tracking
 
@@ -30,20 +31,20 @@ how work is tracked, how tasks are executed, and what "done" means.
 ## 3. Execution flow
 
 ```
-Create a task (Notion or GitHub Issue)
+Create a GitHub Issue
         │
         ▼
 Run it via Claude Code in the terminal
         │
         ▼
-Agent implements the change (code + tests)
+Agent implements the change (code + tests + docs)
         │
         ▼
 Status updated on the board (In Review → Done)
 ```
 
-Create the task upstream (Notion or GitHub), pull it into the terminal, let the agent
-implement it, then move the board status forward as it progresses.
+Create the issue on GitHub, pull it into the terminal, let the agent implement it, then
+move the board status forward as it progresses.
 
 ## 4. Definition of Done loop (IMPORTANT)
 
@@ -68,11 +69,37 @@ A page doc under `docs/pages/` is complete when it covers:
 - [ ] **Validations** — form/schema rules enforced on the page.
 - [ ] **Edge cases** — empty, loading, error, and permission-denied states.
 
-## 5. Docs in repo vs Notion
+## 5. Docs live in the repo
 
-Keep the canonical, engineer-facing docs in the repo (`docs/`) so they version with the code
-and are reviewable in PRs; mirror the readable overview, roadmap, and release notes to Notion
-so non-engineers have a single readable hub. The two stay in sync through the Definition of
-Done loop: whenever a PR updates a doc in `docs/`, the same change is pushed to the matching
-Notion page (via the Notion MCP or a manual copy) as part of closing the task — the repo leads,
-Notion follows, and neither is allowed to drift for more than one completed task.
+All docs live in `docs/` as markdown. There is no external docs workspace, and nothing is
+mirrored anywhere. Why:
+
+- **Version-controlled** — docs move with the code. Checking out an old commit gives you
+  the docs as they were at that commit.
+- **Diffable** — a doc change shows up as a reviewable diff, not an opaque page edit.
+- **Reviewed** — docs go through the same PR review as the code.
+- **Updated with the code** — the doc change ships in the same PR as the behaviour it
+  describes, so the two can't drift. A separate system always drifts, because keeping it in
+  sync is a second, skippable step.
+- **One account** — GitHub is the only tool anyone needs. No extra seat, login, or sync step.
+- **CLI/AI friendly** — plain markdown in the working tree is directly readable by Claude
+  Code and by grep.
+
+### The readable hub: `pnpm docs:viewer`
+
+Raw markdown in a folder is fine for grep, less fine for reading. The docs viewer
+(`scripts/build-docs-viewer.mjs`) builds **`docs/viewer.html`** — one self-contained file
+with every doc, marked, CSS, and JS inlined. Open it by double-clicking; it works from
+`file://`, offline, with no server and no CDN.
+
+Features: category sidebar, rendered GFM tables, full-text search with excerpts,
+light/dark following the OS, and deep links (`#docs/modules/orders.md`).
+
+`docs/viewer.html` is **git-ignored** — it's a generated artifact. Re-run `pnpm docs:viewer`
+after changing docs, or you're reading a stale snapshot.
+
+### Why not GitHub Pages
+
+GitHub Pages sites are **public even when the repo is private** — access-controlled Pages is
+a GitHub Enterprise Cloud feature. Publishing a private repo's docs to Pages would leak them.
+The local viewer keeps docs private, works offline, and stays CLI/AI friendly.

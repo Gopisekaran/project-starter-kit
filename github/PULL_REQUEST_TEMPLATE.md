@@ -22,7 +22,6 @@ Closes #__
 
 - [ ] Per-page doc created/updated under `docs/pages/`
 - [ ] Module doc created/updated under `docs/modules/` (if the change spans a feature)
-- [ ] Mirrored to Notion (if the workspace mirrors docs)
 - [ ] N/A — no user-facing page or feature changed
 
 ## Test / verify checklist

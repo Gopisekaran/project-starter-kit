@@ -84,9 +84,11 @@ only with a written reason recorded in an ADR under `docs/decisions/`.
 
 | Item            | Choice                                      | Explanation                                                              |
 | --------------- | ------------------------------------------- | ------------------------------------------------------------------------ |
-| MCP             | Notion / GitHub / Jira                      | Connect Claude Code to the team's task and docs systems.                 |
+| MCP             | GitHub                                      | Issues, PRs, and the board reachable from the terminal. (Other task systems have MCP servers if a project needs one — GitHub is the default.) |
 | AI Agents       | `.claude/agents/*.md`                        | Specialized agents for frontend / backend / architecture / infra.        |
-| Task Management | Notion / GitHub → terminal (Claude Code)    | Create task upstream, execute via Claude Code in the terminal.           |
+| Task Management | GitHub Issues → terminal (Claude Code)      | Create the issue on GitHub, execute via Claude Code in the terminal.     |
+| Docs            | Markdown in `docs/`, in the repo            | Single source of truth — versioned, diffable, reviewed in the same PR as the code. |
+| Docs Viewer     | `pnpm docs:viewer` → `docs/viewer.html`     | Self-contained offline HTML hub (sidebar, search, tables). Not GitHub Pages — Pages is public even for private repos. |
 | Per-page Docs   | Markdown per page/feature                   | Document API endpoints, components, routes, entry/exit, purpose, actions. |
 
 ---

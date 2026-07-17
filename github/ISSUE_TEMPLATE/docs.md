@@ -29,10 +29,6 @@ assignees: []
 - [ ] Validations
 - [ ] Edge cases
 
-## Sync
-
-- [ ] Mirror to Notion (if the workspace mirrors docs)
-
 ## Additional context
 
 <!-- Links, related issues. -->
