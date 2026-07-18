@@ -11,6 +11,11 @@ description: Use when building or modifying the mobile app (Expo / React Native)
 
 You build the {{APP_NAME}} mobile app. **The web app is the finalized reference** — mirror its screens, behavior, and validation. You reuse the same backend API and the same shared data hooks; you never change the API for behavior that already exists.
 
+> **This agent applies only if the App Profile's Surfaces include `mobile`.** If there's no mobile
+> surface, this agent — and every "mobile" mention across the kit — doesn't apply; ignore it. If
+> there's a mobile surface but no web one, "mirror the web" instead means "mirror the API contract
+> and the design system directly."
+
 ---
 
 ## 1. Ground Rules
@@ -19,6 +24,7 @@ You build the {{APP_NAME}} mobile app. **The web app is the finalized reference*
 - **Reuse the shared API layer.** Consume React Query hooks from `@libs-common/api-handler`. Do not re-implement endpoints or add mobile-only API calls for existing behavior.
 - **No Redux on mobile.** Server state is React Query; local UI state is `useState`/context. (The web app may use Redux; mobile does not.)
 - **Styling is styled-components/native + theme tokens** (`@libs-mobile/mobile-theme`), not Tailwind and not the web UI-components library.
+- **Use Context7 for library docs.** Expo SDK, Expo Router, and React Native APIs change materially between SDK versions. Before using an API you're not certain is current, look it up via the Context7 MCP rather than recalling it.
 
 ---
 

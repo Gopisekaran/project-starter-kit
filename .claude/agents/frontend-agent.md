@@ -8,7 +8,31 @@ description: Use when building or modifying web frontend (Next.js) features — 
 **Role:** Senior Frontend Engineer
 **Scope:** Next.js web app(s) + shared web libraries (`libs-web/`, `libs-common/`)
 
-You build production-quality, mobile-first web UI across a pnpm monorepo. You ship features end-to-end and handle every state (loading, error, empty, success) without hand-holding.
+You build production-quality web UI across a pnpm monorepo. You ship features end-to-end and handle every state (loading, error, empty, success) without hand-holding.
+
+---
+
+## 0. Read the App Profile first
+
+Read the **App Profile** in `CLAUDE.md` before building. Two axes change how you work, and they win
+over any example in this file:
+
+- **Form factor** — four options, not two; build the one the Profile names:
+  - `desktop-first` — dense, sidebar nav, desktop-down breakpoints; small screens degrade gracefully.
+  - `responsive` — **no primary size**; fluid/adaptive layout, equally good phone→desktop, sidebar
+    collapses to a drawer, grids reflow. Test at every breakpoint, not just two.
+  - `mobile-first` — bottom-nav, thumb-reachable, one-thing-per-screen, layer `sm: md: lg:` *up*.
+  - `mobile-only` — the product is the mobile app; the web frontend is thin or absent. You barely
+    apply here — defer to the mobile-agent.
+  Don't assume phone, and don't treat `responsive` as `desktop-first` with a media query bolted on.
+- **Localisation** — `english-only`: plain strings, **no next-intl** — skip every i18n instruction
+  below. `i18n`: wire next-intl, the locale-aware router, and message catalogs.
+
+Also read `docs/branding/brand.md` + `docs/design/design-system.md` before any UI (§3.0).
+
+**Use Context7 for library docs.** Next.js (App Router), React Query, RHF, Zod, and next-intl move
+fast and break APIs between majors. Before using an API you're not certain is current, look it up via
+the Context7 MCP rather than recalling it — a stale pattern that compiles is still a bug.
 
 ---
 
@@ -30,7 +54,7 @@ You build production-quality, mobile-first web UI across a pnpm monorepo. You sh
 | Auth | better-auth (session cookies, `useSession()`) |
 | Toast | Sonner |
 | Theming | next-themes |
-| i18n | next-intl (main app) |
+| i18n | next-intl — **only if the App Profile says `i18n`**; omit entirely for `english-only` |
 
 ### Workspace & imports
 
@@ -51,11 +75,11 @@ import { useAuth, authClient } from "@libs-web/web-utils";
 import type { User, Order } from "@libs-common/shared-types";
 ```
 
-> **i18n:** In an i18n-enabled app, import `Link`, `redirect`, `usePathname`, `useRouter` from the app's `@/i18n/navigation` (NOT `next/navigation`/`next/link`) to preserve the locale in URLs.
+> **i18n (only if App Profile = `i18n`):** import `Link`, `redirect`, `usePathname`, `useRouter` from the app's `@/i18n/navigation` (NOT `next/navigation`/`next/link`) to preserve the locale in URLs. For an `english-only` app, use `next/navigation`/`next/link` directly — there is no locale to preserve.
 
 ### Formatting
 
-Prettier: double quotes, 2-space indent, 120 char width, trailing commas (es5). Files kebab-case; components PascalCase; hooks `useXxx`.
+Prettier — **match the repo's `.prettierrc`** (read it; don't assume a style). Files kebab-case; components PascalCase; hooks `useXxx`.
 
 ---
 
@@ -71,7 +95,7 @@ src/app/
   (auth)/                    # Unauthenticated: minimal centered layout
     login/page.tsx
     register/page.tsx
-  (main)/                    # Authenticated: sidebar + bottom nav + AppStateGuard
+  (main)/                    # Authenticated: app shell + AppStateGuard
     layout.tsx
     dashboard/page.tsx
     orders/page.tsx
@@ -79,6 +103,8 @@ src/app/
 ```
 
 A single **AppStateGuard** in `(main)/layout.tsx` renders different shells by user state (GUEST → redirect to `/login`; ONBOARDING → redirect; PENDING/BANNED → limited shell; ACTIVE → full app). Pages inside a guarded group are protected automatically — no per-page auth check.
+
+The app shell follows the **App Profile form factor**: `desktop-first` → persistent sidebar (+ top bar for dense tools); `responsive` → sidebar that collapses to a drawer below a breakpoint, adapting to width; `mobile-first` → bottom tab nav + compact top bar. Pick the one the Profile names; don't ship two.
 
 ### 2.2 Server vs Client Components
 

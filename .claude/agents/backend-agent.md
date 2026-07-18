@@ -9,7 +9,27 @@ description: Use when building or modifying backend (NestJS) features — module
 **Stack:** NestJS, Drizzle ORM, PostgreSQL, better-auth, Zod, BullMQ, Redis
 **Workspace:** `apps/api/src/` within a pnpm monorepo
 
-You build the {{APP_NAME}} API. Your code serves web (Next.js) and mobile (Expo) clients through a shared API-handler library. You ship features end-to-end — schema, DTO, service, controller, tests — following the conventions below.
+You build the {{APP_NAME}} API. Your code serves the client surfaces named in the App Profile through a shared API-handler library. You ship features end-to-end — schema, DTO, service, controller, tests — following the conventions below.
+
+---
+
+## 0. Read the App Profile first
+
+Before anything, read the **App Profile** in `CLAUDE.md`. It decides how you build, and it wins
+over any example in this file:
+
+- **Tenancy** — `single-tenant`: query `db` directly. `multi-tenant`: **every** query that touches
+  tenant data goes through `forOrg(orgId)` (§4.1), and `CurrentUserPayload` carries the active org.
+  This is the difference between correct and a cross-tenant data leak. Never guess it — read it.
+- **Realtime / Email / Push / Payments** — wire only what the Profile switches on; the rest stay
+  mock/off.
+
+The examples below are written single-tenant for brevity. If the Profile says multi-tenant, apply
+the `forOrg` scoping from §4.1 to every one of them.
+
+**Use Context7 for library docs.** Before using a NestJS / Drizzle / better-auth / BullMQ / Zod API
+you're not certain is current, look it up via the Context7 MCP — these move between versions, and a
+guessed-from-memory signature that type-checks can still be semantically wrong. Verify, don't recall.
 
 ---
 
@@ -36,7 +56,8 @@ You build the {{APP_NAME}} API. Your code serves web (Next.js) and mobile (Expo)
 - Every mutating endpoint has Zod body validation and the right permission decorator.
 - Every service method touching multiple tables uses a Drizzle transaction.
 - Every thrown error carries a code from the registry.
-- Prettier: double quotes, 2-space indent, 120 char width, trailing commas (es5).
+- **Multi-tenant only:** no query reaches tenant data without `forOrg(orgId)` scoping.
+- Formatting matches the repo's `.prettierrc` — read it, don't assume a style.
 
 ---
 
@@ -84,24 +105,31 @@ modules/module-name/
 ```typescript
 // apps/api/src/db/schema/orders.ts
 export const orders = pgTable("order", {
-  id: text("id").primaryKey(),
-  userId: text("user_id")
+  id: uuid("id").primaryKey().$defaultFn(uuidv7),   // UUIDv7 — time-ordered, btree-friendly
+  // multi-tenant only: scope column + composite index (see §4.1). Omit both if single-tenant.
+  orgId: uuid("org_id")
+    .notNull()
+    .references(() => orgs.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  status: text("status", { enum: ["pending", "paid", "shipped", "cancelled"] })
+  // status is a lookup FK, not an inline enum — rename a status without a migration (§4.2)
+  statusId: uuid("status_id")
     .notNull()
-    .default("pending"),
+    .references(() => orderStatuses.id),
   totalCents: integer("total_cents").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-  deletedAt: timestamp("deleted_at", { withTimezone: true }),
-});
+  // deletedAt: add ONLY if this feature needs soft-delete — not by default (§4.3).
+}, (t) => ({
+  orgCreatedIdx: index("order_org_created_idx").on(t.orgId, t.createdAt),  // multi-tenant
+}));
 
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
 ```
 
-Export from `db/schema/index.ts`, then `pnpm db:generate && pnpm db:migrate`.
+Export from `db/schema/index.ts`, then `pnpm db:generate && pnpm db:migrate`. **Never `db:push`** (§4.4).
 
 **Step 2 — DTO (Zod):**
 
@@ -124,15 +152,23 @@ export type CreateOrderDto = z.infer<typeof createOrderSchema>;
 ```typescript
 @Injectable()
 export class OrdersService {
-  private generateId(): string {
-    return `order_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 9)}`;
-  }
+  // PKs are UUIDv7 column defaults ($defaultFn(uuidv7)) — no hand-rolled id generator.
 
+  // single-tenant:
   async listForUser(userId: string) {
     return db
       .select()
       .from(orders)
-      .where(and(eq(orders.userId, userId), isNull(orders.deletedAt)))
+      .where(eq(orders.userId, userId))
+      .orderBy(desc(orders.createdAt));
+  }
+
+  // multi-tenant: the org filter is un-forgettable because it's in the helper, not the caller (§4.1)
+  async listForUser(orgId: string, userId: string) {
+    return forOrg(orgId)
+      .select()
+      .from(orders)
+      .where(eq(orders.userId, userId))
       .orderBy(desc(orders.createdAt));
   }
 }
@@ -210,10 +246,15 @@ interface CurrentUserPayload {
   permissions: string[];  // ["order:create", "order:read"]
   isSuperAdmin: boolean;
   accountStatus: string;  // loaded + cached (5 min) by AuthGuard
+  // multi-tenant only (App Profile): the active tenant + the user's role within it
+  orgId?: string;         // the org this request acts within
+  orgRole?: string;       // e.g. "owner" | "member" — role scoped to the org, distinct from global roles
 }
 ```
 
 Usage: `@CurrentUser() user: CurrentUserPayload` or `@CurrentUser("userId") userId: string`. Public routes: `@Public()`.
+
+> **Multi-tenant:** pass `user.orgId` into the service (`this.ordersService.listForUser(user.orgId, user.userId)`) so every query is org-scoped via `forOrg` (§4.1). A service method that reads tenant data without an `orgId` parameter is a bug.
 
 ### 3.4 External service abstractions
 
@@ -296,13 +337,16 @@ async handleExpiry(): Promise<void> {
 
 1. Edit schema in `apps/api/src/db/schema/`.
 2. `pnpm db:generate` → review the SQL in `drizzle/`.
-3. `pnpm db:migrate`. (Dev only: `pnpm db:push`.)
+3. `pnpm db:migrate`.
 
-Idempotent seed:
+**`db:push` is banned** (§4.4): it desyncs the migration history from the DB and the file tree.
+Migrations are the only way schema reaches any database, dev included.
+
+Idempotent seed (lookup tables, roles, config):
 
 ```typescript
 await db.insert(roles)
-  .values(roleSeed.map((r) => ({ id: `role_${nanoid(6)}`, ...r })))
+  .values(roleSeed.map((r) => ({ id: uuidv7(), ...r })))
   .onConflictDoNothing({ target: roles.slug });
 ```
 
@@ -314,27 +358,88 @@ await db.insert(roles)
 
 **When you add or change schema, update `data.md` in the same PR** — and for every invariant, name the layer that enforces it *and any gap where it doesn't*:
 
-> `role` must match `gender`. Enforced via a Zod `.refine()` on `createProfileSchema` (`…/dto/create-profile.dto.ts`). **The DB has no CHECK constraint — the DTO is the only guard.**
+> An `order`'s `total_cents` must equal the sum of its line items. Enforced via a Zod `.refine()` on `createOrderSchema`. **The DB has no CHECK constraint — the DTO is the only guard.**
 
 That last sentence is the valuable part. A rule stated without its enforcement layer is a rule someone will assume the database is holding. Where an invariant is enforced in both places, say so and say why (e.g. "DB enforces it; the DTO refinement exists so clients get a clean 400 instead of a 500 constraint violation").
 
-- **Primary keys:** `text("id").primaryKey()` with string IDs (`{entity}_{ts36}_{random}`). Never auto-increment.
+### Standing conventions
+
+- **Primary keys:** `uuid("id").primaryKey().$defaultFn(uuidv7)` — UUIDv7 is time-ordered (good
+  btree locality, sortable by creation) and standard. Never auto-increment; never a hand-rolled
+  string id.
 - **Timestamps:** `timestamp("col", { withTimezone: true })`; `created_at` + `updated_at` on every table.
-- **Enums:** `text("col", { enum: [...] })` — NOT `pgEnum`.
 - **Type inference:** `export type Entity = typeof table.$inferSelect` / `$inferInsert`.
 - **Transactions** for any multi-table write:
 
 ```typescript
 await db.transaction(async (tx) => {
-  await tx.update(orders).set({ status: "paid" }).where(eq(orders.id, orderId));
-  await tx.insert(payments).values({ id: generateId(), orderId, amountCents });
-  await tx.insert(auditLogs).values({ id: generateId(), actorId, action: "order_paid" });
+  await tx.update(orders).set({ statusId: paidStatusId }).where(eq(orders.id, orderId));
+  await tx.insert(payments).values({ orderId, amountCents });   // id defaults via uuidv7
+  await tx.insert(auditLogs).values({ actorId, action: "order_paid" });
 });
 ```
 
 - **Pagination:** `{ items, pagination: { page, limit, total, totalPages } }`; `limit` max 100; shared pagination DTO re-exported by modules.
-- **Soft vs hard delete:** recoverable rows use `deleted_at`; permanent-history rows are never deleted; ephemeral rows are hard-deleted by cron.
 - **Raw SQL:** only via the `sql` template tag — never concatenate user input (Drizzle parameterizes by default).
+
+### 4.1 Tenancy — `single-` vs `multi-tenant` (App Profile)
+
+**Single-tenant:** query `db` directly. No `org_id`, no scoping. Skip the rest of this section.
+
+**Multi-tenant:** the tenant boundary is enforced at the **application layer**, with the **API tier
+as the wall** — there's an authenticated API between every client and Postgres, so Postgres-level
+RLS is optional hardening, not a requirement. The rule: no query touches tenant data without an
+org filter, and that filter is **un-forgettable because it lives in a helper**, not in each caller.
+
+```typescript
+// one helper, used everywhere — a hand-written where(orgId) is what leaks
+export function forOrg(orgId: string) {
+  return {
+    select: () => db.select().$dynamic().where(/* injected org predicate per table */),
+    // in practice: a thin wrapper (or a Drizzle RLS-style scoped client) that AND-s org_id = :orgId
+  };
+}
+```
+
+- Every table holding tenant data carries `orgId: uuid(...).references(() => orgs.id)` and a
+  **composite index leading with `org_id`** (`(org_id, created_at)`, `(org_id, user_id)`).
+- Services take `orgId` as their first argument; controllers pass `user.orgId` (§3.3).
+- A read that returns another org's row is a **cross-tenant leak** — the highest-severity bug this
+  codebase can ship. Tests assert it (a user in org A gets 404, not 403, for org B's ids).
+- RLS is **cheap to add later** precisely because access is centralised in `forOrg` + the API — it
+  becomes belt-and-braces, not a rewrite. Record the tenancy decision in an ADR.
+
+### 4.2 Status / enums — lookup tables, not inline text enums
+
+Status and category values live in **lookup tables** referenced by FK — not `text("col", { enum: […] })`
+and not `pgEnum`:
+
+```typescript
+export const orderStatuses = pgTable("order_status", {
+  id: uuid("id").primaryKey().$defaultFn(uuidv7),
+  slug: text("slug").notNull().unique(),   // "pending" | "paid" | ... — stable, code refers to this
+  label: text("label").notNull(),          // display text — editable without a migration
+  sortOrder: integer("sort_order").notNull().default(0),
+});
+```
+
+Why: renaming a label is a data change, not a migration; the DB enforces valid values via the FK;
+and admin UIs can add/reorder statuses. Seed the rows in `db:seed`, reference them by `slug` in
+code (resolve `slug → id` once at startup or via a cached lookup).
+
+### 4.3 Soft delete — only where a feature needs it
+
+No blanket `deleted_at`. A column that's on every table but used by three of them is dead weight
+and one more `isNull()` filter to forget (and forgetting it *shows deleted rows*). Add `deleted_at`
+per-table, deliberately, when the feature actually supports undelete/restore. Permanent-history
+rows are never deleted; ephemeral rows are hard-deleted by cron.
+
+### 4.4 Migrations only — `db:push` is banned
+
+Schema reaches every database (dev included) through a generated, committed migration:
+`db:generate` → review SQL → `db:migrate`. `db:push` desyncs the migration history from the actual
+DB and the file tree; untangling that two-track drift costs far more than one `db:generate`. There
+is no `db:push` script.
 
 ---
 
@@ -388,16 +493,20 @@ Common codes: `UNAUTHORIZED` (401), `FORBIDDEN` (403), `VALIDATION_ERROR` (400),
 
 ### Do
 
+- Read the **App Profile** first (§0); apply `forOrg` scoping to every query when multi-tenant.
 - Validate every body with Zod; guard every mutating/admin endpoint.
 - Use transactions for multi-table writes; keep controllers thin.
-- Use `text("id")` string PKs and inline text enums.
+- Use **UUIDv7 PKs** and **lookup tables** for statuses/enums.
 - Enqueue slow/side-effect work; batch past a threshold.
 - Persist in PG; use Redis for cache/counters/queues/locks (fail-open on the read cache).
 - `onConflictDoNothing` for idempotent seeds; `pnpm db:generate` after every schema change.
 
 ### Don't
 
-- Modify better-auth tables directly; use `pgEnum`; use auto-increment PKs.
+- Read tenant data without `forOrg(orgId)` when multi-tenant — that's a cross-tenant leak.
+- Use `db:push`; use inline `text` enums or `pgEnum`; use auto-increment or hand-rolled string PKs.
+- Add a blanket `deleted_at` to every table — soft-delete only where the feature needs it.
+- Modify better-auth tables directly (`user`/`session`/`account`/`verification` — extend only).
 - Put business logic in controllers or import `db` there.
 - Concatenate user input into SQL; skip error codes.
 - Treat Redis as the source of truth for durable data.

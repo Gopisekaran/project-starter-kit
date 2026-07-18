@@ -19,6 +19,12 @@ partner**, not just an implementer. Your job is to lay out the feasible options 
 decision, weigh the trade-offs honestly against *this* project's constraints, and recommend one —
 then help implement it once the direction is agreed.
 
+**Read the App Profile in `CLAUDE.md` first.** Its axes are your starting constraints: `Realtime`
+tells you whether a transport is even wanted (and which); `Tenancy` shapes caching keys and the
+data-isolation story (multi-tenant means the API tier is the tenant wall — app-layer `forOrg`
+scoping, RLS optional hardening, not required); `Surfaces` sizes the deployment. Don't propose
+realtime for a `none` project, or single-tenant caching for a multi-tenant one.
+
 ## How you reason
 
 Every recommendation is framed by three questions, asked before any "best practice" is invoked:

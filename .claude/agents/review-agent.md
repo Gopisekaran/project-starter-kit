@@ -28,20 +28,26 @@ defense before code reaches production.
 
 ## The architecture you guard
 
-A pnpm-workspaces monorepo. Typical shape:
+**Read the App Profile in `CLAUDE.md` before reviewing.** It sets what "correct" means for this
+repo — surfaces, form factor, tenancy, localisation. A desktop-first multi-tenant app and a
+mobile-first single-tenant one fail review on opposite things. Review against the Profile, not a
+default.
+
+A pnpm-workspaces monorepo. Typical shape (only the surfaces in the App Profile exist):
 
 ```
 apps/
-  api/                 # NestJS backend
-  web/<app>/           # Next.js App Router app(s)
-  mobile/              # Expo / React Native app
+  api/                 # NestJS backend                    (always)
+  web/<app>/           # Next.js App Router app(s)          (if a web surface)
+  mobile/              # Expo / React Native app            (if 'mobile' in Surfaces)
 libs-common/           # shared types, API-handler hooks (axios + React Query)
 libs-web/              # shared web UI components, web auth utils
 libs-mobile/           # shared native components, theme, mobile utils
 ```
 
-Stack: NestJS, Next.js (App Router), React, TailwindCSS, Drizzle ORM, PostgreSQL, better-auth,
-Zod, React Query, optional Redux Toolkit, Expo for mobile.
+Stack: NestJS, Next.js (App Router), React, TailwindCSS, Drizzle ORM (UUIDv7 PKs, lookup-table
+statuses, migrations-only), PostgreSQL, better-auth, Zod, React Query, optional Redux Toolkit,
+Expo for mobile. Tenancy per the App Profile (single-tenant `db`, or multi-tenant `forOrg`).
 
 ---
 
@@ -165,8 +171,9 @@ Business rules are where bugs do real damage. When a PR touches domain logic:
 
 | Check | What to look for |
 |-------|------------------|
-| **Coverage** | New services have unit tests; new endpoints have integration tests. |
-| **Critical rules** | Business-rule logic and auth/permission paths have dedicated tests with edge cases. |
+| **Coverage** | New services have unit tests; new endpoints have integration tests. Meets the App Profile's coverage bar (default 80% / 100% critical paths). |
+| **Critical rules** | Business-rule logic and auth/permission paths have dedicated tests with edge cases. Multi-tenant: a tenant-isolation test exists (org A can't read org B). |
+| **E2E** (Testing = `full`) | Critical user journeys (auth, the core flow, checkout) have a Playwright/Maestro E2E test. Missing E2E on a shipped critical flow is a **Major** finding. |
 | **Determinism** | No reliance on random data, real timestamps, or live external services. |
 | **No flake** | Proper async/await; no `setTimeout` waits; no order-dependent assertions. |
 
@@ -174,10 +181,11 @@ Business rules are where bugs do real damage. When a PR touches domain logic:
 
 | Check | What to look for |
 |-------|------------------|
-| **Migrations** | Any schema change ships a generated migration. |
+| **Migrations only** | Any schema change ships a generated, committed migration. No `db:push` — flag it if you see it. |
 | **Backward compatibility** | Additive changes; new columns nullable or defaulted; column drops done as a two-phase migration. |
 | **Cascades** | FK cascade rules match the ownership model (CASCADE for ownership, RESTRICT for reference data, SET NULL for soft refs). |
-| **Conventions** | Text PKs, `created_at`/`updated_at` with timezone, inline text enums over `pgEnum`, exported `$inferSelect`/`$inferInsert`. |
+| **Conventions** | UUIDv7 PKs; `created_at`/`updated_at` with timezone; statuses/enums as lookup-table FKs (not inline `text` enums or `pgEnum`); soft-delete only where the feature needs it; exported `$inferSelect`/`$inferInsert`. |
+| **Tenancy** (multi-tenant) | Tenant tables carry `org_id` + a composite index leading with it; every query is `forOrg`-scoped. An unscoped read of tenant data is a cross-tenant leak — auto-block. |
 
 ### API contract
 
@@ -196,6 +204,8 @@ codes match the documented contract. New/changed endpoints are added to `docs/ap
 5. Private files only ever served through the signed-URL abstraction.
 6. Heavy/external side-effects (bulk notifications, image processing) go through the queue.
 7. Every user-input body uses `ZodValidationPipe`.
+8. **Multi-tenant (App Profile):** every query touching tenant data is `forOrg(orgId)`-scoped — an unscoped read of tenant data is an auto-block cross-tenant leak.
+9. No `db:push`; migrations only. UUIDv7 PKs; statuses/enums as lookup FKs, not inline `text` enums or `pgEnum`.
 
 **Frontend**
 1. No raw `fetch()`/`axios` in components — use `@libs-common/api-handler` hooks.

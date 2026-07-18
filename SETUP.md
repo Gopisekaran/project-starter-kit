@@ -2,21 +2,27 @@
 
 Follow these steps in order to stand up a new repo from the starter kit.
 
+> **Do [`INITIALISE.md`](INITIALISE.md) first.** It decides the **App Profile** — surfaces, form
+> factor, tenancy, localisation — which determines *which* `apps/*` you create below and how the
+> agents build. Setting up before the shape is decided means undoing it.
+
 ---
 
 ## 1. Create the repo + pnpm workspace
 
-Initialize a git repo and a pnpm workspace. Expected layout:
+Initialize a git repo and a pnpm workspace. **Create only the `apps/*` your App Profile's Surfaces
+named** — the full menu:
 
 ```
 apps/
-  api/            # NestJS backend
-  web/            # Next.js main app
-  marketing/      # Next.js public marketing site (optional)
-  mobile/         # Expo React Native app
-libs-common/      # Shared types + API handler (web + mobile)
-libs-web/         # Web-only shared UI + utils
-libs-mobile/      # Mobile-only shared UI + theme + utils
+  api/            # NestJS backend                       (always)
+  web/            # Next.js main app                     (if 'web' in Surfaces)
+  admin/          # Next.js admin dashboard              (if 'admin' in Surfaces)
+  marketing/      # Next.js public marketing site        (if 'marketing' in Surfaces)
+  mobile/         # Expo React Native app                (if 'mobile' in Surfaces)
+libs-common/      # Shared types + API handler
+libs-web/         # Web-only shared UI + utils           (if any web surface)
+libs-mobile/      # Mobile-only shared UI + theme + utils (if 'mobile' in Surfaces)
 docs/             # Documentation
 .claude/agents/   # Claude Code agents
 .github/          # Issue templates + PR template
@@ -52,10 +58,16 @@ any step for an app the project doesn't have, and keep the pinned pnpm version i
 the root `package.json` `packageManager` field. CI gates lint + type-check, tests, and build
 on every push/PR to `main`. Details in [`github/workflows/README.md`](github/workflows/README.md).
 
-## 4. Connect the GitHub MCP in Claude Code
+## 4. Connect the required MCP servers in Claude Code
 
-Connect the **GitHub** MCP server so issues, PRs, and the board are reachable from the
-terminal. Verify it responds before continuing (list a GitHub issue).
+Two MCP servers are **required** — connect both and verify each responds before continuing:
+
+- **GitHub** — issues, PRs, and the board reachable from the terminal (list a GitHub issue to verify).
+- **Context7** — up-to-date, version-correct documentation for any library or framework, fetched on
+  demand. This is **non-negotiable**: the stack moves faster than any model's training cutoff, and a
+  confidently-wrong API from memory is the most expensive kind of bug. The agents are instructed to
+  consult Context7 before using an unfamiliar or fast-moving library API. Verify it resolves a known
+  library (e.g. look up the framework you're on).
 
 Docs don't need an MCP server — they're markdown in the repo, already in the working tree.
 
@@ -140,11 +152,15 @@ users, goal, problems, subscription model, platforms, success metrics, non-goals
 per-project decisions from `TECH_STACK.md` (email provider, realtime server, payments routing)
 and record each in an ADR under `docs/decisions/`.
 
-## 10. Set up CLAUDE.md
+## 10. Set up CLAUDE.md (incl. the App Profile)
 
 Rename `CLAUDE.md.template` → `CLAUDE.md` at the repo root and replace every `{{PLACEHOLDER}}`
 with real values (app name, filter names, provider choices, env vars). This is what Claude Code
 reads on every session.
+
+**Fill the App Profile block** at the top with the answers from [`INITIALISE.md`](INITIALISE.md)
+(Surfaces, Form factor, Tenancy, Localisation, …). Every agent reads it and obeys it over its own
+examples — it's the whole reason the agents build the *right* shape without per-dispatch overrides.
 
 ---
 

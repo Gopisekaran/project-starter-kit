@@ -161,6 +161,10 @@ Practical rules:
 - **A rule changed** (`BR-*`) → the doc, the code, **and** the test that pins it, together.
 - **The change invalidates an ADR** → write a **new** ADR that supersedes it. ADRs are
   immutable; that's the point.
+- **The change is to the app's *shape*** (an App Profile axis — e.g. single- → multi-tenant, or
+  adding a locale) → this is the heavyweight case: update the App Profile in `CLAUDE.md`, write an
+  ADR, **refresh the agents' context**, then build. The agents read the Profile, so a shape change
+  they haven't seen means they'll build the old shape. Never let the code lead the Profile.
 
 Bug fixes that don't change intent skip straight to implement + test — the doc was already right.
 

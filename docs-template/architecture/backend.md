@@ -28,6 +28,18 @@ module-name/
   utils/     # optional module-specific helpers
 ```
 
+## Tenancy
+
+> Fill from the App Profile (`CLAUDE.md`). Single-tenant → "queries use `db` directly; no org
+> boundary." Multi-tenant → describe the wall.
+
+- **Model:** {{single-tenant | multi-tenant}}
+- **Boundary (multi-tenant):** the **API tier is the tenant wall** — an authenticated API sits
+  between every client and Postgres, so tenant isolation is enforced at the application layer via
+  the `forOrg(orgId)` scoping helper, not Postgres RLS. RLS is optional hardening (cheap to add
+  later because access is centralised). `CurrentUserPayload` carries the active `orgId` + org role.
+  Details in [`data.md`](./data.md#tenancy).
+
 ## Guards, interceptors, pipes
 
 > The global and opt-in cross-cutting pieces. One line each; cite code.

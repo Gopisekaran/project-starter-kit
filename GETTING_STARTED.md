@@ -18,7 +18,7 @@ Read this once end-to-end (10 minutes), then work it stage by stage.
 ```
    ONE-TIME SETUP
  ┌─────────────────────────────────────────────────────────────┐
- │ 0  Clone + initialise            → working repo, CLAUDE.md  │
+ │ 0  Initialise (App Profile) + set up → CLAUDE.md, working repo │
  └─────────────────────────────────────────────────────────────┘
 
    THINK  ── before any code ──────────────────────────────────
@@ -55,18 +55,39 @@ in code, where it costs more.
 
 ---
 
-## Stage 0 — Set up the repo
+## Stage 0 — Initialise the App Profile, then set up the repo
 
-**Goal:** a working monorepo with the kit's docs, agents, and GitHub scaffolding in place.
+**Goal:** decide *what kind of app this is* before anything is built, then stand up the repo to match.
 
-- **Who you talk to:** nobody — this is mechanical.
-- **You produce:** a repo with `docs/`, `.claude/agents/`, `.github/`, and a filled `CLAUDE.md`.
-- **Do it:** follow **[`SETUP.md`](SETUP.md)** top to bottom. It has the real commands —
-  workspace layout, copying templates, `gh auth`, labels, board, docs viewer.
-- **Done when:** `pnpm install` succeeds, `bash github/labels.sh` created the labels, and
-  the Projects board exists.
+- **Who you talk to:** Claude with **`superpowers:brainstorming`** for the profile; then nobody
+  (setup is mechanical).
+- **You produce:** a filled **App Profile** in `CLAUDE.md` (surfaces, form factor, tenancy,
+  localisation, realtime, integrations), then a repo with `docs/`, `.claude/agents/`, `.github/`.
 
-> Don't skim `SETUP.md` step 5. `gh auth refresh -s project,read:project` is the one people
+**Paste this into Claude Code:**
+
+```
+Use superpowers:brainstorming. Read INITIALISE.md, then interview me to fill
+the App Profile. Ask one axis at a time, recommend a default, push back on
+contradictions. Write the result into CLAUDE.md and tell me which agents,
+docs, and apps/* folders apply.
+```
+
+- **Do it:** run **[`INITIALISE.md`](INITIALISE.md)** (the interview), then **[`SETUP.md`](SETUP.md)**
+  top to bottom — create only the `apps/*` your Surfaces named, connect the **GitHub + Context7**
+  MCP servers, then `gh auth`, labels, board, viewer.
+- **Done when:** the App Profile block in `CLAUDE.md` is filled, both MCP servers respond,
+  `pnpm install` succeeds, `bash github/labels.sh` created the labels, and the Projects board exists.
+
+> **Context7 is required, not optional.** It gives the agents current library docs on demand — the
+> stack outruns any training cutoff, and a confidently-wrong API from memory is the worst kind of
+> bug. Every build agent is told to consult it before using a fast-moving API.
+
+> **Why the profile first:** every agent reads it and builds to it — a desktop B2B multi-tenant tool
+> and a consumer mobile app are *different builds* from line one. Decide the shape once, in the
+> artifact, so you're never overriding a stale default on every dispatch.
+>
+> Don't skim `SETUP.md` step 5 either — `gh auth refresh -s project,read:project` is the one people
 > miss, and every `gh project` command fails without it.
 
 **Next:** Stage 1.
@@ -227,9 +248,9 @@ Write an ADR for each decision we land.
 - **Done when:** `data.md` lists the invariants **with their enforcement layer and honest
   gaps**, and every significant decision has an ADR.
 
-> **Say where an invariant is NOT enforced.** A doc that says *"role must match gender —
-> enforced by a Zod refinement; the DB has no CHECK constraint, so the DTO is the only guard"*
-> is worth ten that just state the rule. The gap is the thing that bites.
+> **Say where an invariant is NOT enforced.** A doc that says *"an order's total must equal the sum
+> of its line items — enforced by a Zod refinement; the DB has no CHECK constraint, so the DTO is
+> the only guard"* is worth ten that just state the rule. The gap is the thing that bites.
 >
 > ADRs are **immutable** once accepted. Changed your mind? Write a new one that supersedes it.
 > See [`docs-template/decisions/README.md`](docs-template/decisions/README.md).
@@ -308,7 +329,8 @@ Full per-task detail: **[`WORKFLOW.md`](WORKFLOW.md)**.
 your memory.
 
 - **Who you talk to:** the **`testing-agent`**.
-- **You produce:** unit / integration / E2E tests, green in CI.
+- **You produce:** unit + integration tests always; **Playwright E2E** on the critical journeys if
+  the App Profile's Testing axis is `full`. Green in CI.
 - **Runs in parallel with Stage 7** — not after it. The AC were written in Stage 2, so the
   tests can be too.
 
@@ -317,11 +339,13 @@ your memory.
 ```
 Use the testing-agent. Read docs/features/<feature>.md and write tests for
 the acceptance criteria of US-N. Cover the edge cases and the business
-rules (BR-*), not just the happy path.
+rules (BR-*), not just the happy path. If Testing = full and this is a
+critical journey, add a Playwright E2E for it too.
 ```
 
-- **Done when:** every AC has a test, CI is green, and the tests fail if you break the rule
-  they cover. (Check that. A test that passes against broken code is worse than no test.)
+- **Done when:** every AC has a test, the coverage bar holds (80% / 100% critical paths), CI is
+  green, and the tests fail if you break the rule they cover. (Check that — a test that passes
+  against broken code is worse than no test.) Multi-tenant: a tenant-isolation test exists.
 
 **Next:** Stage 9.
 
@@ -381,7 +405,7 @@ Details: [`WORKFLOW.md § 6`](WORKFLOW.md#6-when-requirements-change) ·
 
 | Stage | You produce | Agent / skill |
 |---|---|---|
-| 0 Set up | repo + `CLAUDE.md` | — ([`SETUP.md`](SETUP.md)) |
+| 0 Initialise + set up | App Profile in `CLAUDE.md` + repo | `superpowers:brainstorming` ([`INITIALISE.md`](INITIALISE.md), [`SETUP.md`](SETUP.md)) |
 | 1 Discuss product | `CORE_DOCUMENT.md` | `superpowers:brainstorming` |
 | 2 Functional doc | `docs/features/<f>.md` | `superpowers:brainstorming` |
 | 3 Branding | `docs/branding/brand.md` | Claude |
@@ -409,6 +433,7 @@ each defines what it will and won't touch.
 
 | I need… | Read |
 |---|---|
+| To decide the app's shape (surfaces, tenancy, …) | [`INITIALISE.md`](INITIALISE.md) → App Profile in `CLAUDE.md` |
 | The stack (already decided) | [`TECH_STACK.md`](TECH_STACK.md) |
 | Setup commands | [`SETUP.md`](SETUP.md) |
 | Day-to-day task loop, Definition of Done | [`WORKFLOW.md`](WORKFLOW.md) |

@@ -8,14 +8,18 @@ starts the same way.
 Tracking is **GitHub-only**: docs are markdown in the repo, tasks and bugs are GitHub Issues on a
 Projects v2 board. No second system to keep in sync.
 
-This kit is domain-neutral: examples use generic `users` / `orders` and `{{APP_NAME}}` placeholders.
+This kit is domain-neutral **and shape-neutral**: examples use generic `users` / `orders` and
+`{{APP_NAME}}` placeholders, and nothing assumes your app is mobile or web, consumer or B2B,
+single- or multi-tenant. That shape is decided once at initialisation ([`INITIALISE.md`](INITIALISE.md))
+and recorded in an **App Profile** the agents read — so they build *your* app, not a default one.
 Nothing here is tied to any specific product.
 
 ## What's inside
 
 | File / folder                                                | Purpose                                                                          |
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| [`GETTING_STARTED.md`](GETTING_STARTED.md)                   | **Start here.** The nine-stage flow from empty repo to shipped feature, and which agent to use at each stage. |
+| [`INITIALISE.md`](INITIALISE.md)                             | **Run first.** The initialisation interview — decides the App Profile (surfaces, form factor, tenancy, localisation) that every agent then obeys. |
+| [`GETTING_STARTED.md`](GETTING_STARTED.md)                   | **Then here.** The nine-stage flow from empty repo to shipped feature, and which agent to use at each stage. |
 | [`TECH_STACK.md`](TECH_STACK.md)                             | The canonical stack every project adopts, plus the per-project decisions to make. |
 | [`WORKFLOW.md`](WORKFLOW.md)                                 | Operating model: docs, tracking, execution flow, the Definition of Done loop, and the change-request loop. |
 | [`PROJECT_PLAN.md`](PROJECT_PLAN.md)                         | Plan template: milestones as versions, exit criteria, feature docs → issues.       |
@@ -34,9 +38,10 @@ Nothing here is tied to any specific product.
 
 ## Quick start
 
-**Read [`GETTING_STARTED.md`](GETTING_STARTED.md).** It's the whole flow — set up the repo,
-discuss the product, write the feature docs, define the branding and design system, design the
-schema, turn it all into milestones and issues, then implement / review / test / document.
+**Run [`INITIALISE.md`](INITIALISE.md) first** (decide the App Profile), then read
+**[`GETTING_STARTED.md`](GETTING_STARTED.md)** for the whole flow — set up the repo, discuss the
+product, write the feature docs, define the branding and design system, design the schema, turn it
+all into milestones and issues, then implement / review / test / document.
 
 Two supporting reads: [`SETUP.md`](SETUP.md) for the setup commands, and
 [`WORKFLOW.md`](WORKFLOW.md) for the day-to-day task loop once you're building.

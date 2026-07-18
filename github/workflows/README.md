@@ -20,11 +20,17 @@ supersedes the previous run instead of queueing behind it.
 | Job             | Runs                                      | Depends on              |
 | --------------- | ----------------------------------------- | ----------------------- |
 | `lint-typecheck`| `pnpm lint` + per-app `type-check`        | —                       |
-| `test`          | backend + web + admin test scripts        | —                       |
+| `test`          | backend + web + admin unit/integration    | —                       |
 | `build`         | `pnpm build`                              | `lint-typecheck`, `test`|
+| `e2e` (optional)| Playwright critical journeys + Postgres   | `build`                 |
 
 `lint-typecheck` and `test` run in parallel; `build` waits for both, so a lint or test
 failure fails the run before spending time on a build.
+
+**E2E:** `ci.yml` ships a commented `e2e` job. Uncomment it for a **`full`** Testing profile
+(App Profile) — it spins up a Postgres service, installs the Playwright browser, migrates + seeds,
+and runs `pnpm test:e2e` against the built app. Leave it commented for a `standard` profile, and
+delete it for an `api-only` project with no browser surface.
 
 Every job follows the same setup chain:
 `actions/checkout@v4` → `pnpm/action-setup@v4` (pinned to the repo's pnpm version) →

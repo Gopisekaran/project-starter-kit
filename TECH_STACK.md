@@ -4,6 +4,10 @@ The canonical technology stack every new project adopts. Copy this file into a n
 repo's `docs/` (or keep it in the starter kit) and treat it as the default. Deviate
 only with a written reason recorded in an ADR under `docs/decisions/`.
 
+> **The stack is fixed; the *shape* is not.** Which of these layers you use — mobile or not,
+> multi-tenant or not, i18n or not, realtime or not — is set once by the **App Profile** during
+> [`INITIALISE.md`](INITIALISE.md). Read that first. This file is the menu; the App Profile is your order.
+
 ---
 
 ## 1. Monorepo & Language
@@ -27,11 +31,14 @@ only with a written reason recorded in an ADR under `docs/decisions/`.
 | Framework         | Next.js                    | SSR / SSG for the main application.                  |
 | Marketing/Info Site | Separate Next.js public site | Dedicated landing / marketing site, decoupled from the app. |
 
-## 4. Mobile
+## 4. Mobile *(only if `mobile` in the App Profile's Surfaces)*
 
 | Item      | Choice                  | Explanation                                    |
 | --------- | ----------------------- | ---------------------------------------------- |
 | Framework | Expo (React Native)     | Single codebase for iOS and Android.           |
+
+> If the project has no mobile surface, skip this section, the mobile-agent, and the
+> `apps/mobile` + `libs-mobile` workspaces entirely.
 
 ## 5. Authentication
 
@@ -44,8 +51,11 @@ only with a written reason recorded in an ADR under `docs/decisions/`.
 | Item                | Choice                       | Explanation                                                                                       |
 | ------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------- |
 | DB                  | PostgreSQL                   | Primary relational data store.                                                                    |
-| ORM                 | Drizzle                      | TypeScript-first ORM with typed schema and migrations.                                            |
-| Data Setup          | Master-data seeding          | Seed roles, categories, and config so environments start consistent.                              |
+| ORM                 | Drizzle                      | TypeScript-first ORM with typed schema. **Migrations only — `db:push` is banned** (it desyncs migration history from the DB). |
+| Primary keys        | UUIDv7                       | Time-ordered, standard, btree-friendly. Not auto-increment, not hand-rolled string ids.           |
+| Statuses / enums    | Lookup tables + FK           | Not inline `text` enums or `pgEnum` — rename a label without a migration; the DB enforces valid values. |
+| Tenancy             | Per App Profile              | Single-tenant → `db` directly. Multi-tenant → `org_id` + `forOrg(orgId)` scoping, API tier as the wall (RLS optional hardening). |
+| Data Setup          | Master-data seeding          | Seed roles, lookup tables, and config so environments start consistent.                            |
 | Data Layer Strategy | DB-vs-Redis split            | Postgres for persisted data; Redis for sessions, rate-limits, real-time counters, and queues.     |
 
 ## 7. Notifications
@@ -80,12 +90,32 @@ only with a written reason recorded in an ADR under `docs/decisions/`.
 | ------- | ------- | ------------------------------------------------------- |
 | Hosting | Vercel  | Consistent build/host pattern across apps where possible.|
 
-## 11. AI Dev Tooling & Documentation
+## 11. Testing & Quality
+
+Not optional. Every project ships with the test pyramid wired from day one — the testing-agent owns
+it, and CI gates it.
+
+| Item                | Choice                                          | Explanation                                                                 |
+| ------------------- | ----------------------------------------------- | --------------------------------------------------------------------------- |
+| Unit (backend)      | Vitest                                          | Services, guards, pipes, business rules, utilities.                          |
+| API integration     | Vitest + Supertest                              | HTTP endpoints against the running NestJS app; contract + auth.             |
+| DB integration      | Vitest + Drizzle test client                    | Schema integrity, constraints, cascades — and **tenant isolation** if multi-tenant. |
+| Web unit/component  | Vitest + React Testing Library + jsdom + MSW    | Hooks, components, store slices; MSW for deterministic API responses.        |
+| Mobile unit/component | jest-expo + React Native Testing Library      | Screens, components, hooks *(only if `mobile` in Surfaces)*.                 |
+| **E2E**             | **Playwright** (web) / Maestro (mobile)         | Full user journeys across browser/app + API + DB. Critical flows must have one. |
+| Coverage            | 80% overall · 100% critical paths & business rules | Auth, permissions, money/state-changing logic, and documented endpoints at 100%. |
+| CI gate             | lint → type-check → unit/integration → build → E2E | Every push/PR to `main`; a red gate blocks merge.                            |
+
+Depth is set at init (the **App Profile**'s Testing axis): a pure API or internal tool may defer E2E;
+a public product ships it. But unit + integration + the coverage bar are the floor for everything.
+
+## 12. AI Dev Tooling & Documentation
 
 | Item            | Choice                                      | Explanation                                                              |
 | --------------- | ------------------------------------------- | ------------------------------------------------------------------------ |
-| MCP             | GitHub                                      | Issues, PRs, and the board reachable from the terminal. (Other task systems have MCP servers if a project needs one — GitHub is the default.) |
-| AI Agents       | `.claude/agents/*.md`                        | Specialized agents for frontend / backend / architecture / infra.        |
+| MCP — tracking  | GitHub                                      | Issues, PRs, and the board reachable from the terminal. (Other task systems have MCP servers if a project needs one — GitHub is the default.) |
+| MCP — docs      | **Context7** (required)                     | Up-to-date, version-correct library/framework docs on demand. The stack outruns any training cutoff; agents consult Context7 before using a fast-moving or unfamiliar API rather than guessing from memory. |
+| AI Agents       | `.claude/agents/*.md`                        | Specialized agents for frontend / backend / mobile / architecture / infra / review / testing. |
 | Task Management | GitHub Issues → terminal (Claude Code)      | Create the issue on GitHub, execute via Claude Code in the terminal.     |
 | Docs            | Markdown in `docs/`, in the repo            | Single source of truth — versioned, diffable, reviewed in the same PR as the code. |
 | Docs Viewer     | `pnpm docs:viewer` → `docs/viewer.html`     | Self-contained offline HTML hub (sidebar, search, tables). Not GitHub Pages — Pages is public even for private repos. |
@@ -95,8 +125,19 @@ only with a written reason recorded in an ADR under `docs/decisions/`.
 
 ## Decisions to make per project
 
-These are genuinely open and should be locked during kickoff (record the choice in an ADR):
+Locked during initialisation ([`INITIALISE.md`](INITIALISE.md)) and recorded in the **App Profile**
+(`CLAUDE.md`); the architectural ones also get an ADR.
+
+**Shape (App Profile axes — decide these first, they reshape the build):**
+
+- **Surfaces** — which apps exist (`web` · `admin` · `mobile` · `marketing` · `api-only`).
+- **Form factor** — `desktop-first` (dense, sidebar) vs `mobile-first` (bottom-nav, thumb).
+- **Tenancy** — `single-tenant` (B2C) vs `multi-tenant` (B2B, org-scoped). A one-way door — decide honestly.
+- **Localisation** — `english-only` vs `i18n` (don't add i18n "to be safe").
+
+**Providers (switch on only what launch needs; the rest stay mock/off):**
 
 - **Email provider** — ZeptoMail vs Resend (weigh cost, deliverability, and India support).
-- **Realtime server** — Socket.io (self-hosted, more ops control) vs Pusher (managed, less ops).
-- **Payments routing** — Stripe vs Razorpay, and how region routing is decided (India → Razorpay, rest → Stripe is the default assumption).
+- **Realtime server** — `none` to start; else Socket.io (self-hosted) vs Pusher/Soketi (managed protocol).
+- **Payments routing** — `none` to start; else Stripe vs Razorpay, region-routed (India → Razorpay, rest → Stripe is the default assumption).
+- **Push / SMS-OTP** — FCM; MSG91 (India) vs Twilio (intl).

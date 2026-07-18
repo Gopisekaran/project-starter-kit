@@ -46,6 +46,11 @@ _…_
 
 _…_
 
+> These platform answers, plus the *technical* shape (tenancy, form factor, localisation), get
+> captured precisely in the **App Profile** during [`INITIALISE.md`](INITIALISE.md). This doc is
+> the product framing; the App Profile is the build shape the agents read. Keep them consistent —
+> e.g. "per-org billing" here implies `multi-tenant` there.
+
 ## Success Metrics
 
 > How we know it's working: 2–4 measurable outcomes (activation, retention, conversion, revenue, etc.).

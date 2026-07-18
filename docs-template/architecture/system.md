@@ -3,6 +3,10 @@
 > **Template.** Fill each section, delete the prompts. This is the map — keep it
 > high-level and link down into `backend.md`, `frontend.md`, `data.md`.
 
+> **Shape (from the App Profile in `CLAUDE.md`):** Surfaces `{{web, admin}}` · Form factor
+> `{{desktop-first}}` · Tenancy `{{single-tenant}}` · Localisation `{{english-only}}` · Realtime
+> `{{none}}`. These decide what's in this diagram — draw only the surfaces and services that exist.
+
 ## Stack at a glance
 
 > One line per layer: language/framework, key libraries, hosting.
@@ -41,8 +45,8 @@ graph TD
 
 1. {{Client sends …}}
 2. {{Edge / middleware …}}
-3. {{Auth / guards …}}
-4. {{Controller → service …}}
+3. {{Auth / guards …}} — resolves the user (and, multi-tenant, the active `orgId`).
+4. {{Controller → service …}} — multi-tenant: the service scopes every query via `forOrg(orgId)`.
 5. {{DB read/write …}}
 6. {{Response envelope returned …}}
 

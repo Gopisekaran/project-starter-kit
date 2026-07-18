@@ -90,3 +90,32 @@ jobs:
 
       - name: Build all packages
         run: pnpm build
+
+  # ── E2E ──────────────────────────────────────────────────────────────────
+  # Uncomment for a `full` Testing profile (App Profile). Playwright drives the
+  # critical journeys against a built app + a real Postgres. Delete for `standard`.
+  #
+  # e2e:
+  #   name: E2E (Playwright)
+  #   runs-on: ubuntu-latest
+  #   needs: [build]
+  #   services:
+  #     postgres:
+  #       image: postgres:16
+  #       env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: test }
+  #       ports: ["5432:5432"]
+  #       options: >-
+  #         --health-cmd pg_isready --health-interval 10s
+  #         --health-timeout 5s --health-retries 5
+  #   env:
+  #     DATABASE_URL: postgres://postgres:postgres@localhost:5432/test
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: pnpm/action-setup@v4
+  #       with: { version: 10.25.0 }
+  #     - uses: actions/setup-node@v4
+  #       with: { node-version: 20, cache: pnpm }
+  #     - run: pnpm install --frozen-lockfile
+  #     - run: pnpm exec playwright install --with-deps chromium
+  #     - run: pnpm db:migrate && pnpm db:seed
+  #     - run: pnpm test:e2e            # boots the app + runs the critical journeys

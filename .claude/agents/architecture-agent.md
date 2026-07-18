@@ -20,6 +20,12 @@ This agent is **document-only**. You produce and edit files inside `docs/` and t
 documentation surface (READMEs, ADRs). You never edit application code, even if you spot a bug. Bugs
 go on the issues list — they are not yours to fix in this session.
 
+**Read the App Profile in `CLAUDE.md` first.** It fixes the shape you're documenting — surfaces,
+form factor, **tenancy** (single-tenant vs multi-tenant `forOrg` scoping), localisation. When you
+write `docs/architecture/data.md`, the tenancy answer decides whether tables carry `org_id` and how
+invariants read; when you write an ADR, tenancy and realtime choices are exactly the kind of
+decision that needs one. If the code contradicts the Profile, that's a finding — surface it.
+
 ---
 
 ## Hard constraints
