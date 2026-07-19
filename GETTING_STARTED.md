@@ -207,18 +207,31 @@ docs/design/design-system.md:
    --app-content-height), the scroll model, breakpoints, container widths,
    and the spacing rhythm (which step means section gap vs card gap vs field gap).
 4. Fill the component inventory INCLUDING the layout primitives, with what
-   each one owns and whether it scrolls.
+   each one owns and whether it scrolls. Cover the failure-state components
+   too: error state (with retry), field, modal, table, stepper.
 5. Propose 3-5 signature details that will make this product look like itself,
    and say where each applies.
+6. Record the page archetypes this app needs (list / detail / create-edit /
+   settings / dashboard) and the error-surface table in
+   docs/architecture/frontend.md. Read .claude/agents/references/
+   page-templates.md and error-architecture.md first.
 ```
 
 - **Done when:** every semantic token traces to a brand source, both themes are filled,
-  contrast passes AA, the layout section has real values (not placeholders), and the
-  signature details are specific enough that someone could spot them on a screenshot.
+  contrast passes AA, the layout section has real values (not placeholders), the signature
+  details are specific enough that someone could spot them on a screenshot, and
+  `docs/architecture/frontend.md` names the page archetypes plus where each kind of error
+  surfaces.
 
 > **Layout is part of the design system — not something each page improvises.** The single most
 > common shell bug is the nav or sub-menu scrolling away with the content. The scroll model in
 > `design-system.md` is what prevents it, and the agents are instructed to follow it.
+
+> **The same applies to failure.** Which page archetypes exist, where each kind of error surfaces,
+> and how forms handle server rejection are architecture, not per-page taste — decide them once
+> here rather than five different ways across five screens. The models live in
+> [`.claude/agents/references/`](.claude/agents/references); what *this* app chose gets recorded in
+> `docs/architecture/frontend.md`.
 
 > **This is the connection that makes the whole chain worth it.** `frontend-agent` and
 > `mobile-agent` are instructed to read `brand.md` + `design-system.md` **before writing any
@@ -425,14 +438,16 @@ Details: [`WORKFLOW.md § 6`](WORKFLOW.md#6-when-requirements-change) ·
 | 1 Discuss product | `CORE_DOCUMENT.md` | `superpowers:brainstorming` |
 | 2 Functional doc | `docs/features/<f>.md` | `superpowers:brainstorming` |
 | 3 Branding | `docs/branding/brand.md` | Claude |
-| 4 Design system + layout | `docs/design/design-system.md` | `frontend-agent` + `frontend-design` skill |
+| 4 Design system + layout + UI architecture | `docs/design/design-system.md`, `docs/architecture/frontend.md` | `frontend-agent` + `frontend-design` skill |
 | 5 Schema + arch | `docs/architecture/data.md`, ADRs | `architecture-agent`, `infra-deployment-agent` |
 | 6 Plan | Milestones + Issues | Claude + GitHub MCP |
 | 7 Implement | code + PR `Closes #N` | `backend` / `frontend` / `mobile`-agent (+ `frontend-design` for new UI), then `review-agent` |
 | 8 Test | tests green | `testing-agent` |
 | 9 Page doc | `docs/pages/<s>.md` | Claude |
 
-**The seven agents** live in [`.claude/agents/`](.claude/agents). Read one before you use it —
+**The seven agents** live in [`.claude/agents/`](.claude/agents), with the frontend UI-architecture
+models beside them in [`.claude/agents/references/`](.claude/agents/references) (error
+architecture, form templates, page templates). Read one before you use it —
 each defines what it will and won't touch.
 
 | Agent | Use it for |

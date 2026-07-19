@@ -127,6 +127,9 @@ docs/             # Repo documentation (see docs/README.md)
 - **Migrations only** — never `db:push` (see above). One generated, committed migration per change.
 - **Soft-delete only where a feature needs it** — a `deleted_at` on every table is dead weight
   and one more `isNull()` filter to forget. Add it per-table, deliberately.
+- **Money is an integer in minor units** (`amount_cents`) plus an ISO 4217 code — never a binary
+  float. `0.1 + 0.2 = 0.30000000000000004`; summed line items drift and can't be recovered after
+  the write. Same contract on the wire and in the client.
 - **Tenancy** (App Profile): `multi-tenant` → every table that holds tenant data carries an
   `org_id` FK, and every query goes through the `forOrg(orgId)` helper. `single-tenant` → none of that.
 
@@ -142,7 +145,17 @@ docs/             # Repo documentation (see docs/README.md)
   margin; inner-scroll regions need a bounded height, `svh` (never `vh`), and **every
   `overflow-y-auto` in a flex row paired with `min-h-0`** — without it the scroll escapes to the
   document and the menu scrolls away with the content. Full model in `docs/design/design-system.md`.
+- **Page archetypes:** pick one (list / detail / create-edit / settings / dashboard) — it decides
+  the layout primitive and scroll mode. Every data segment ships `page.tsx` + `loading.tsx` +
+  `error.tsx`. State branch order is loading → error → empty → content.
+- **Error architecture:** four layers — segment `error.tsx` (preferred), root `error.tsx`,
+  `global-error.tsx`, and a React `ErrorBoundary` in the provider tree. The boundary is not
+  redundant: `error.tsx` catches async/server errors, but a **synchronous client render throw** can
+  escape it and take the app white. Each error surfaces at its own altitude — field errors inline,
+  failed loads as an error state **with retry**, failed actions as a toast.
 - Forms with 3+ fields use React Hook Form + `zodResolver`. Mirror backend Zod refinements on the client.
+  Compute `defaultValues` with `useMemo` (**never** `useEffect` + `reset` — a background refetch wipes
+  the user's input), and map the API's `validationErrors` onto fields via `setError`.
 - Wrap `useSearchParams()` in a `<Suspense>` boundary.
 - **i18n only if App Profile says so** — `english-only` ships plain strings, no next-intl.
 

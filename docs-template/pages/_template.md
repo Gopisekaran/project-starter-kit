@@ -20,10 +20,12 @@
 > What the screen is *made of*. Without this, a page doc can describe every API call and
 > validation rule and still leave the reader unable to picture the screen.
 
+- **Archetype:** `{{list}}` / `{{detail}}` / `{{create-edit}}` / `{{settings}}` / `{{dashboard}}`
 - **Layout primitive:** `{{PageLayout}}` / `{{SubMenuPageLayout}}` / `{{SelectionPanelLayout}}`
 - **Container width:** `{{narrow}}` — see the design system's Layout section
 - **Scroll mode:** `{{Mode A — document scroll}}` / `{{Mode B — content pane scrolls alone}}`
 - **Page header:** {{breadcrumb + title + subtitle + primary action}}
+- **Route files:** `{{page.tsx + loading.tsx + error.tsx}}` — note any that are deliberately absent
 
 ```
 {{ ┌──────────────────────────────────────────┐

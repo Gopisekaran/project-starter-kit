@@ -219,6 +219,25 @@ const { data: res, isLoading } = useMyProfile();
 const profile = res?.data;
 ```
 
+### 2.6 Error architecture
+
+Errors arrive at five altitudes — field, form, query, mutation, render crash — and each has exactly
+one correct surface. Full model in **[`references/error-architecture.md`](references/error-architecture.md)**;
+read it before the first route of a new app. The load-bearing parts:
+
+- **Four boundary layers:** segment `error.tsx` (preferred — the shell survives, so the user can
+  navigate away) → root `app/error.tsx` → `global-error.tsx` (renders its own `<html>`/`<body>`)
+  → a React `ErrorBoundary` in the provider tree. The boundary is **not** redundant with
+  `error.tsx`: `error.tsx` catches async and server errors, but a synchronous client render throw
+  can escape it and take the app white with nothing shown to the user.
+- **A query failure is not a toast** — render `ErrorState` with an `onRetry`; a toast vanishes and
+  leaves a blank content area. **A field error is not a toast** either — map `validationErrors`
+  onto the fields (§3.2).
+- **Surface `error.digest`** in every fallback. It's the only handle support has to find the
+  matching server log.
+- Missing resources use `not-found`, never a thrown error; permission-denied is its own copy, not
+  a 404.
+
 ---
 
 ## 3. Implementation Patterns
@@ -233,6 +252,16 @@ Two docs govern every pixel. Read them **before** the first component, not after
    elevation, **the Layout section** (scroll model, layout tokens, container widths, spacing
    rhythm), the component inventory with their states, and the **signature details** that make
    this product look like itself.
+
+Three references in `references/` govern the structure underneath the pixels. Read the one that
+matches what you're about to build — they're the difference between a page that works and a page
+that survives a failed request:
+
+| Building… | Read |
+|---|---|
+| any new route | [`references/page-templates.md`](references/page-templates.md) — pick the archetype first |
+| any form with 3+ fields or validation | [`references/form-templates.md`](references/form-templates.md) |
+| the first route of a new app, or anything that fetches | [`references/error-architecture.md`](references/error-architecture.md) |
 
 **Designing a new surface, or reshaping an existing one? Invoke the `frontend-design` skill
 first.** Tokens and states only get you to *correct* — a fully compliant screen can still look
@@ -263,17 +292,31 @@ If either doc is missing or contradicts the code, **stop and say so** — don't 
 
 ### 3.1 New protected page
 
-Create `src/app/(main)/<route>/page.tsx` as a `"use client"` component; it's auto-protected by the group layout. Compose `PageLayout` — the page supplies header content and children, **never its own frame** — and handle all four states inside it:
+**Pick the archetype first** — it decides the layout primitive, the scroll mode, and the states you
+owe the user. Full model in **[`references/page-templates.md`](references/page-templates.md)**.
+
+| Archetype | Layout | Scroll (§2.1b) |
+|---|---|---|
+| List | `PageLayout` | Mode A |
+| Detail | `PageLayout` | Mode A |
+| Create / edit | `PageLayout` (or a dialog over the list) | Mode A |
+| Settings | `SubMenuPageLayout` | **Mode B** |
+| Dashboard | `PageLayout` | Mode A |
+
+Every segment gets **three** files — `page.tsx`, `loading.tsx`, and `error.tsx` (§2.6). Skipping
+`error.tsx` sends the failure to the root boundary and the user loses the nav.
+
+The list archetype, in full. Create `src/app/(main)/<route>/page.tsx` as a `"use client"` component; it's auto-protected by the group layout. Compose `PageLayout` — the page supplies header content and children, **never its own frame** — and handle all four states inside it:
 
 ```tsx
 "use client";
 
 import { Package, Plus } from "lucide-react";
-import { Button, Card, PageLayout, Skeleton, EmptyState } from "@libs-web/ui-components";
-import { useMyOrders } from "@libs-common/api-handler";
+import { Button, Card, PageLayout, Skeleton, EmptyState, ErrorState } from "@libs-web/ui-components";
+import { useMyOrders, getErrorMessage } from "@libs-common/api-handler";
 
 export default function OrdersPage() {
-  const { data, isLoading, isError } = useMyOrders();
+  const { data, isLoading, isError, error, refetch } = useMyOrders();
   const orders = data?.data?.items ?? [];
 
   return (
@@ -290,7 +333,8 @@ export default function OrdersPage() {
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-[var(--radius)]" />)}
         </div>
       ) : isError ? (
-        <EmptyState icon={<Package className="size-12" />} title="Couldn't load orders" description="Check your connection and try again." />
+        // A failed query gets ErrorState with a retry — never a toast, never EmptyState.
+        <ErrorState title="Couldn't load orders" message={getErrorMessage(error)} onRetry={refetch} />
       ) : orders.length === 0 ? (
         <EmptyState icon={<Package className="size-12" />} title="No orders yet" description="Your orders will appear here." />
       ) : (
@@ -305,6 +349,15 @@ export default function OrdersPage() {
 
 Note what the page does **not** do: no `max-w-*`, no `mx-auto`, no page padding, no bare `<h1>`. `PageLayout` owns all four. The page owns its content and its states.
 
+**Branch order is load-bearing:** loading → error → empty → content. Checking `empty` before
+`isError` renders "No orders yet" when the request actually failed — telling the user their data
+is gone when it's the network that's gone.
+
+**Once the list has filters, the empty branch needs a guard:** show "No orders yet" only when the
+filters are clear. Filtered-to-zero must fall through to the table, or you've hidden the control
+that caused the emptiness and the user thinks their data was deleted (see
+[`references/page-templates.md`](references/page-templates.md) §2).
+
 For a page with a fixed sub-nav beside scrolling content, swap in `SubMenuPageLayout`; for master-detail, `SelectionPanelLayout`. Both put the page in **Mode B** scroll (§2.1b) — the menu stays put, only content moves.
 
 Then add nav entries (sidebar / bottom nav) if the page needs them.
@@ -312,6 +365,18 @@ Then add nav entries (sidebar / bottom nav) if the page needs them.
 ### 3.2 Forms (3+ fields or any validation)
 
 React Hook Form + `zodResolver` + `FieldControlled` from the UI library. Mirror the backend DTO's refinements in the frontend schema so errors surface inline before submit.
+
+**Full structure, mappers, server-error mapping, dirty guards, and multi-step wizards are in
+[`references/form-templates.md`](references/form-templates.md)** — read it for anything beyond a
+single flat form. The four rules you cannot skip:
+
+- **`defaultValues` via `useMemo`, never `useEffect` + `reset`.** React Query refetches on window
+  focus; an effect-driven reset wipes the user's half-typed input when they alt-tab back.
+- **Map `validationErrors` onto fields** via `form.setError` — a field error shown as a toast
+  leaves the user with a form they can't fix.
+- **Null-coalesce every field** when mapping API → form. `null` flips a React input to
+  uncontrolled and silently drops what the user types.
+- **Disable submit while pending.** Otherwise a double-click creates two records.
 
 ```typescript
 // lib/schemas/order.ts
@@ -347,7 +412,7 @@ export function OrderForm() {
   };
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-lg mx-auto">
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-lg">
       <FieldControlled name="qty" control={form.control} label="Quantity"
         render={(field) => <Input inputMode="numeric" {...field} />} />
       <Button type="submit" className="w-full" disabled={createOrder.isPending}>
@@ -358,7 +423,12 @@ export function OrderForm() {
 }
 ```
 
-Conventions: always `FieldControlled`; pre-populate `defaultValues` from existing data; use `mutateAsync` in try/catch; toast on success/error. For numeric fields use the library's `NumberInput` (never `<input type="number">`).
+Conventions: always `FieldControlled`; pre-populate `defaultValues` from existing data; use `mutateAsync` in try/catch; toast on success/error. For numeric fields use the library's `NumberInput` (never `<input type="number">` — the scroll wheel silently changes a focused value and the decimal separator follows the browser locale). For money use `CurrencyInput`, and **carry the amount as an integer in minor units** — floats can't represent decimal fractions, so summed line items drift by a cent (§3.2 reference, §6).
+
+> **Where the frame stops.** A form component *may* set `max-w-*` — a form's readable measure is a
+> property of the form, not the page. It must not set `mx-auto` or page padding: the form sets
+> **width**, the layout sets **position** (§2.1a). A form that centres itself inside a layout that
+> also centres is how a page ends up double-padded at one breakpoint.
 
 ### 3.3 Redux slice (shared client UI state only)
 
@@ -399,14 +469,13 @@ useMutation({
 
 - Use `next/image` with a proper `sizes` attribute for all remote images; configure `remotePatterns` in `next.config.ts`.
 - Each route auto code-splits; `dynamic(..., { ssr: false })` for heavy client-only deps (Framer Motion, charts).
-- Every page has a Skeleton loading state (`loading.tsx` or inline) matching the loaded layout's shape.
-- Wrap interactive routes with an `error.tsx` (`"use client"`, `{ error, reset }`).
+- Every page has a Skeleton loading state (`loading.tsx` or inline) matching the loaded layout's shape. A skeleton that doesn't match the loaded shape causes layout shift the moment data lands — worse than no skeleton.
 
 ---
 
 ## 4. UI Components
 
-Import all standard primitives from `@libs-web/ui-components` (Button, Card, Input, NumberInput, Select, Table/GenericDataTable, Skeleton, EmptyState, Modal, Badge, Field/FieldControlled, Toaster, etc.). Never re-implement them.
+Import all standard primitives from `@libs-web/ui-components` (Button, Card, Input, NumberInput, CurrencyInput, Select, Table/GenericDataTable, Skeleton, EmptyState, ErrorState, Stepper, Modal, Badge, Field/FieldControlled, Toaster, etc.). Never re-implement them.
 
 - **App-specific components** (feature UI with business logic) live in the app's `components/features/…`.
 - **New shared primitives** go in `@libs-web/ui-components` following the shadcn/Radix `forwardRef` + `cn()` pattern, then export from the barrel.
@@ -427,7 +496,9 @@ Import all standard primitives from `@libs-web/ui-components` (Button, Card, Inp
 - `"use client"` on any page/component using hooks.
 - React Query for all server state; `mutateAsync` in try/catch; invalidate related queries after mutations.
 - `FieldControlled` + `zodResolver` for forms; `NumberInput` for numeric fields.
-- Skeleton for every loading state; `EmptyState` for zero-data; `next/image` for images.
+- Skeleton for every loading state; `EmptyState` for zero-data; `ErrorState` **with retry** for a failed query; `next/image` for images.
+- Give every data segment its three files — `page.tsx`, `loading.tsx`, `error.tsx` (§2.6).
+- Map the API's `validationErrors` onto form fields via `setError` (§3.2).
 - Semantic color tokens; workspace aliases for cross-library imports.
 - Read `docs/branding/brand.md` + `docs/design/design-system.md` before writing UI (§3.0).
 - Run `pnpm --filter <app> type-check` before calling work done.
@@ -441,6 +512,10 @@ Import all standard primitives from `@libs-web/ui-components` (Button, Card, Inp
 - Set `max-w-*`, `mx-auto`, or page padding in a `page.tsx` — compose `PageLayout` (§2.1a).
 - Hardcode a header height, sidebar width, or `100vh` — use the layout tokens and `svh` (§2.1b).
 - Put `overflow-y-auto` on a flex child without `min-h-0` — the scroll escapes to the document and the menu scrolls with the content.
+- Surface a failed query as a toast, or a field error as a toast — each has its own surface (§2.6).
+- Ship a route with no `error.tsx`, or an app with no `ErrorBoundary` in the provider tree — a sync render throw goes white (§2.6).
+- Reset a form from a `useEffect` on fetched data — a background refetch wipes what the user typed (§3.2).
+- Check `empty` before `isError`, or show "nothing here" when a filter matched nothing.
 - Ship a screen that's merely token-correct — run the `frontend-design` skill and apply the signature details (§3.0).
 - Hardcode config that belongs in a constant/config module; use `any`; leave mutations without error handling.
 - Implement security on the client — the API enforces it; the client only mirrors it for UX.
@@ -453,6 +528,9 @@ Import all standard primitives from `@libs-web/ui-components` (Button, Card, Inp
 2. **Write/refresh the page doc** — add or update the relevant file under `docs/pages/` (or `docs/modules/` for a cross-cutting feature) describing the route, states, and data hooks it uses.
 3. **Confirm design-system adherence** — no raw hex/font/spacing values; any new token or component is recorded in `docs/design/design-system.md` in this same PR.
 4. **Check the layout contract** — the page composes `PageLayout` (no ad-hoc container or padding), chrome doesn't scroll with content, every `overflow-y-auto` has its `min-h-0`, and the skeleton mirrors the loaded shape.
+5. **Check the failure paths** — walk the checklists at the end of the three `references/` files.
+   Every segment has `error.tsx`; failed queries retry; server validation lands on fields; the
+   empty state distinguishes "nothing yet" from "nothing matched".
 
 See `WORKFLOW.md` at the kit root for the full branch → PR → review → merge flow, and
 `GETTING_STARTED.md` for where this sits in the project lifecycle.

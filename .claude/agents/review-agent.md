@@ -108,7 +108,12 @@ The cheapest bug to catch is the one where correct code implements the wrong thi
 
 | Check | Rule |
 |-------|------|
-| **App Router conventions** | `page.tsx` / `layout.tsx` / `loading.tsx` / `error.tsx`. |
+| **App Router conventions** | `page.tsx` / `layout.tsx` / `loading.tsx` / `error.tsx`. Every data-bearing segment has all three of page/loading/error. |
+| **Error boundaries** | Segment `error.tsx` where data is fetched; `app/error.tsx` + `global-error.tsx` exist; a React `ErrorBoundary` wraps the provider tree (`error.tsx` alone doesn't catch synchronous client render throws). `global-error.tsx` renders its own `<html>`/`<body>`. |
+| **Error surfaces** | Failed load → error state **with retry**, not a toast, not `EmptyState`. Failed action → toast via the shared error-message helper. Server `validationErrors` → mapped onto fields via `setError`, not flattened to a toast. Missing record → not-found, not a thrown error. |
+| **State branches** | Order is loading → error → empty → content. Empty state only when unfiltered — filtered-to-zero must keep the filter controls visible. |
+| **Form patterns** | `defaultValues` via `useMemo`, **never** `useEffect` + `reset` (a background refetch wipes user input). API→form mapping null-coalesces every field. Submit disabled while pending. `isDirty` guard on forms the user can navigate away from. Multi-step validates per step via `trigger`, and steps read `useFormContext` rather than taking `form` as a prop. |
+| **Numeric & money** | No `<input type="number">`. Money uses `CurrencyInput` and travels as **integer minor units** — a float amount, or decimal places/symbol hardcoded rather than derived from the currency, is a finding. Digit-shaped identifiers (phone, card, postcode) are strings. |
 | **Server vs Client** | Default to Server Components; add `"use client"` only for hooks, event handlers, browser APIs, or animation libs. |
 | **State** | Server state → React Query. Client-only state → Redux/local. Auth state → the auth client (`useSession()`), not Redux. Forms → React Hook Form. |
 | **API access** | All calls through hooks in `@libs-common/api-handler`. No raw `fetch()`/`axios` in components. |
@@ -217,6 +222,9 @@ codes match the documented contract. New/changed endpoints are added to `docs/ap
 3. No server state in Redux — that's React Query's job.
 4. No authenticated page outside the guarded route group.
 5. No hardcoded colors/fonts/spacing — semantic tokens only; a new token lands in `docs/design/design-system.md` first.
+6. No data-fetching route segment without an `error.tsx`, and no app without a React `ErrorBoundary` in the provider tree — a sync render throw goes white.
+7. Server `validationErrors` are mapped onto form fields, never flattened into a toast the user can't act on.
+8. No `useEffect` + `form.reset()` to seed a form from fetched data — use `useMemo` defaults.
 
 **Cross-cutting**
 1. Never commit `.env`/secrets; update `.env.example` for new vars.

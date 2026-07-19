@@ -41,7 +41,9 @@ packages:
 ## 2. Copy the templates in
 
 - Copy `docs-template/` → `docs/`.
-- Copy `.claude/agents/` (from the kit) → `.claude/agents/`.
+- Copy `.claude/agents/` (from the kit) → `.claude/agents/`, **including `agents/references/`** —
+  the frontend agent reads those files by relative path, so leaving them behind gives you an agent
+  that points at nothing.
 - Copy `github/ISSUE_TEMPLATE/` → `.github/ISSUE_TEMPLATE/`.
 - Copy `github/PULL_REQUEST_TEMPLATE.md` → `.github/PULL_REQUEST_TEMPLATE.md`.
 - Copy `scripts/build-docs-viewer.mjs` → `scripts/build-docs-viewer.mjs` (see step 8).

@@ -72,6 +72,13 @@ matching change elsewhere:
   order is asserted in the header of nearly every file. Don't reorder it in one place only.
 - **The seven agents** — listed in `GETTING_STARTED.md`'s cheat sheet and in `CLAUDE.md.template`'s
   Pointers. Adding or removing one under `.claude/agents/` means updating both tables.
+- **Frontend UI architecture** — the models live in `.claude/agents/references/`
+  (`error-architecture.md`, `form-templates.md`, `page-templates.md`); `frontend-agent.md` routes
+  to them (§2.6, §3.0–3.2), `review-agent.md` checks them, `testing-agent.md` tests them,
+  `CLAUDE.md.template`'s Web section states them in one line each, and
+  `docs-template/architecture/frontend.md` is where a project records which archetypes and error
+  surfaces it actually chose. A rule added to a reference file must reach the agent that enforces
+  it, or it's advice nobody applies. `SETUP.md` step 2 must keep copying `references/`.
 - **`docs/` folder taxonomy** — `overview/ features/ branding/ design/ architecture/ api/ modules/
   pages/ decisions/ operations/`. Defined by `docs-template/`, restated in `WORKFLOW.md § 1`
   (including the "which of the four gets confused" table) and in `docs-template/README.md`'s
@@ -120,3 +127,5 @@ them when editing templates or agent files:
 - `SETUP.md` — the ten setup steps for a new repo.
 - `WORKFLOW.md` — day-to-day loop, Definition of Done, change-request loop.
 - `.claude/agents/*.md` — the seven specialists, each scoped to what it will and won't touch.
+- `.claude/agents/references/*.md` — frontend UI architecture the agents read: error boundaries and
+  the error taxonomy, form structure, page archetypes.

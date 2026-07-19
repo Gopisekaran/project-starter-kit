@@ -216,12 +216,24 @@ it, two compliant pages still look different.
 | {{Badge}} | {{neutral / success / warning / danger}} | `{{…}}` |
 | {{Skeleton}} | mirrors the shape of the content it replaces | `{{…}}` |
 | {{Empty state}} | icon + title + description + {{primary action}} | `{{…}}` |
+| {{Error state}} | title + message + **retry action** + {{error id}} | `{{…}}` |
+| {{Field}} | label / hint / **error** / disabled / required | `{{…}}` |
+| {{NumberInput}} | default / focus / error / disabled; no native spinners | `{{…}}` |
+| {{CurrencyInput}} | as NumberInput + {{symbol}}; decimals from the currency, format on blur | `{{…}}` |
+| {{Modal}} | open / closing; bounded height, own scroll | `{{…}}` |
+| {{Table}} | default / loading / empty / no-match; {{sticky header}} | `{{…}}` |
+| {{Stepper}} | per step: upcoming / current / complete / error | `{{…}}` |
 
 **Non-negotiables:**
 
 - Every interactive element has a visible **focus** state using `--ring`.
 - Every async action has a **loading** state and is **double-submit guarded**.
 - Every list has **empty**, **loading**, and **error** states. All three, every time.
+- **Each error surfaces at its own altitude** — field errors inline on the field, failed loads as
+  an error state **with retry**, failed actions as a toast. A failed load shown as a toast leaves
+  the user on a blank page; a field error shown as a toast leaves them unable to fix it.
+- **"Nothing yet" and "nothing matched" are different states** with different copy. Swapping the
+  whole view for an empty state when a filter matched nothing hides the control that caused it.
 - Minimum touch target **{{44×44}}**.
 - **Nav, sub-menu, and panel chrome never scrolls with content.** See the scroll model.
 - **Every `overflow-y-auto` in a flex row is paired with `min-h-0`.**

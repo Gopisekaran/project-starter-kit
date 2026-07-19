@@ -321,6 +321,29 @@ Render hooks with `renderHook`, gate components on state, and drive API response
 handlers so tests stay deterministic. Assert loading, error, and empty states — not just the happy
 path.
 
+**States.** Drive each branch from MSW: a pending handler for loading, a 500 for the error state
+(assert the **retry** control exists and that clicking it refetches), an empty payload for the
+empty state. On a filtered list, assert that filtered-to-zero renders the "no matches" state and
+**keeps the filter controls mounted** — that regression is invisible until a user reports their
+data missing.
+
+**Forms.** Drive them with `userEvent`, not by calling handlers directly:
+
+- submit invalid input → the message lands on the **right field** (`findByText` scoped to the field)
+- submit valid input → the mutation fires with the mapped request body
+- a 422 carrying `validationErrors` → each message appears on its named field, and **no toast fires**
+- while the mutation is pending → the submit button is disabled (the double-submit guard)
+- edit mode → fields are pre-populated from the entity, and a **background refetch does not clear
+  what the user typed** (the `useEffect`-reset regression; simulate by re-resolving the query)
+- multi-step → advancing validates only the current step's fields, and going back preserves input
+
+**Error boundaries.** Render a child that throws inside the boundary and assert the fallback shows
+and `onError` was called. Suppress the expected React error log for that test only. Boundaries are
+the one thing nobody exercises by hand, so an untested boundary is usually a broken one.
+
+Mappers (form↔API) are pure functions — unit-test them directly. Null-coalescing is the case to
+cover: every nullable API field must map to `""` / `0` / `[]`, never `null`.
+
 ---
 
 ## E2E tests (Playwright)

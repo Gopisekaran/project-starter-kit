@@ -368,6 +368,13 @@ That last sentence is the valuable part. A rule stated without its enforcement l
   btree locality, sortable by creation) and standard. Never auto-increment; never a hand-rolled
   string id.
 - **Timestamps:** `timestamp("col", { withTimezone: true })`; `created_at` + `updated_at` on every table.
+- **Money:** store as an **integer count of the currency's minor unit** (`amount_cents`,
+  `amount_minor`) with the ISO 4217 code alongside it — never `float`/`double`/`real`. Floats can't
+  represent most decimal fractions (`0.1 + 0.2 = 0.30000000000000004`), so summed line items drift
+  and the error is unrecoverable once written. If you need decimal *arithmetic* in the DB, use
+  `numeric` — never a binary float. Minor units are also the API contract the web client expects
+  (see `.claude/agents/references/form-templates.md` §6); disagreeing about it produces a 100×
+  pricing bug. Note the unit count is per-currency — JPY has 0, most have 2, KWD has 3.
 - **Type inference:** `export type Entity = typeof table.$inferSelect` / `$inferInsert`.
 - **Transactions** for any multi-table write:
 
