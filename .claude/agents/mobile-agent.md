@@ -116,23 +116,41 @@ Handle every state (loading skeleton, error, empty, success) just like web. Use 
 
 The mobile theme (`@libs-mobile/mobile-theme`) is the **native expression of the same design system** — same token names, same meanings, different runtime. If a token exists on web but not in the mobile theme, that's a gap to close, not a reason to hardcode. Missing a token entirely? Propose it into `design-system.md` first, then add it to the theme. If either doc is missing or contradicts the code, **stop and say so** — don't guess the brand.
 
+**Designing a new screen, or reshaping an existing one? Invoke the `frontend-design` skill first.** Token-correct is not the same as well-designed. Then apply the project's **signature details** from the design system — they're system-level, so they appear on every screen or none.
+
 - Build screens from `@libs-mobile/mobile-components` primitives; add mobile-only feature components under `apps/mobile/src/…`. Check the design system's component inventory before building anything new.
 - Style with styled-components/native, pulling colors/spacing/typography from `useMobileTheme()` — never hardcode hex values. Support light/dark themes via the theme tokens (dark mode is a token remap, never a per-component override).
-- Respect safe areas (`react-native-safe-area-context`) on headers, tab bars, and bottom action bars.
 - Prefer platform-appropriate UX; keep iOS/Android consistent. Reserve heavy animation for where it adds value.
+
+### 4.1 The layout contract
+
+Same contract as web (`frontend-agent` §2.1a), expressed natively. A screen doesn't invent its own frame:
+
+```
+Screen             safe areas + screen padding + THE scroll container
+ ├ ScreenHeader    title · subtitle · actions (pinned — never scrolls away)
+ └ Section[]       heading + content block, at the section rhythm step
+```
+
+**`Screen` owns safe areas and scroll — nothing below it does.** Concretely:
+
+- Safe areas come from `Screen` via `react-native-safe-area-context`, applied once. A screen that adds its own `SafeAreaView` double-pads.
+- **Exactly one scroll container per screen.** Nesting a `ScrollView` inside a `ScrollView` (or a `FlatList` inside a `ScrollView`) breaks scrolling and virtualization — lift the list to be the scroller and pass its header via `ListHeaderComponent`.
+- A pinned header sits **outside** the scroll container; a bottom action bar sits outside it too, above the safe-area inset.
+- Screen padding and section spacing come from `theme.spacing`, never a literal.
 
 ```tsx
 import styled from "styled-components/native";
 
-const Container = styled.View`
-  flex: 1;
-  padding: 16px;
+const Section = styled.View`
+  gap: ${({ theme }) => theme.spacing.sm}px;
+  padding: ${({ theme }) => theme.spacing.md}px;
   background-color: ${({ theme }) => theme.colors.background};
 `;
 
 const Title = styled.Text`
-  font-size: 18px;
-  font-weight: 600;
+  font-size: ${({ theme }) => theme.typography.h2.size}px;
+  font-weight: ${({ theme }) => theme.typography.h2.weight};
   color: ${({ theme }) => theme.colors.foreground};
 `;
 ```
@@ -155,6 +173,8 @@ const Title = styled.Text`
 - Change the API to alter existing behavior — the endpoints already exist and the web contract is the reference.
 - Add Redux, Tailwind, or the web UI-components library to mobile.
 - Hardcode colors/spacing/fonts, or invent a one-off value — use a theme token, or add one to `design-system.md` first.
+- Add a `SafeAreaView` or a second scroll container inside a screen — `Screen` owns both (§4.1).
+- Ship a screen that's merely token-correct — run the `frontend-design` skill and apply the signature details (§4).
 - Bypass the shared data hooks for existing behavior.
 - Store the auth token anywhere other than `expo-secure-store`.
 

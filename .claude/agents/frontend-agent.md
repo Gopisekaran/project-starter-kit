@@ -104,7 +104,69 @@ src/app/
 
 A single **AppStateGuard** in `(main)/layout.tsx` renders different shells by user state (GUEST → redirect to `/login`; ONBOARDING → redirect; PENDING/BANNED → limited shell; ACTIVE → full app). Pages inside a guarded group are protected automatically — no per-page auth check.
 
-The app shell follows the **App Profile form factor**: `desktop-first` → persistent sidebar (+ top bar for dense tools); `responsive` → sidebar that collapses to a drawer below a breakpoint, adapting to width; `mobile-first` → bottom tab nav + compact top bar. Pick the one the Profile names; don't ship two.
+### 2.1a The layout contract (build these before any page)
+
+Pages don't invent their own frame. Four layout primitives own it — see the Layout section of
+`docs/design/design-system.md` for the project's values.
+
+```
+AppLayout              fixed chrome (header / sidebar / bottom nav) + content offset padding
+ └ PageLayout          sticky page header (breadcrumb · eyebrow · title · subtitle · actions),
+    │                  container width, page padding
+    ├ SubMenuPageLayout      + fixed left sub-nav; content scrolls alone
+    └ SelectionPanelLayout   + master-detail list panel; panel and content scroll separately
+```
+
+`AppLayout` follows the **App Profile form factor**: `desktop-first` → persistent sidebar (+ top
+bar for dense tools); `responsive` → sidebar that collapses to a drawer below a breakpoint;
+`mobile-first` → bottom tab nav + compact top bar. Pick the one the Profile names; don't ship two.
+
+**A `page.tsx` never sets its own `max-w-*`, `mx-auto`, or page padding.** It passes
+`contentWidth` to the layout and renders content. If a page is reaching for `max-w-2xl mx-auto`,
+the contract has been bypassed.
+
+### 2.1b Scroll ownership — chrome never scrolls, content does
+
+The most common shell bug is the nav or sub-menu scrolling away with the content. Two modes;
+pick one per region, never mix them.
+
+**Mode A — document scroll** (ordinary pages). Chrome is `position: fixed` — out of flow, so it
+*cannot* scroll. Content reserves the space with **padding, never margin**:
+
+```tsx
+<header className="fixed inset-x-0 top-0 z-50 h-[var(--layout-header-height)]" />
+<aside  className="fixed left-0 top-[var(--layout-header-height)] bottom-0 z-40" />
+
+<main className="min-h-svh pt-[var(--layout-header-height)]
+                 lg:pl-[var(--layout-sidebar-width-expanded)]
+                 pb-[var(--layout-bottomnav-height)]">
+```
+
+The page header sticks *below* the fixed app header:
+`sticky top-[var(--page-header-sticky-offset)]`.
+
+**Mode B — inner scroll** (sub-menu or list panel must stay put). Bound the height, then declare
+per pane:
+
+```tsx
+<div className="h-[var(--app-content-height)] flex flex-col">   {/* bounded */}
+  <div className="flex min-h-0 flex-1">
+    <aside className="w-52 shrink-0 overflow-hidden">           {/* never scrolls with content */}
+      <nav className="min-h-0 flex-1 overflow-y-auto">…</nav>   {/* scrolls itself if long */}
+    </aside>
+    <div className="flex-1 min-w-0 overflow-y-auto">…</div>     {/* the ONLY content scroller */}
+  </div>
+</div>
+```
+
+**`min-h-0` is not optional.** A flex child defaults to `min-height: auto` and won't shrink below
+its content, so `overflow-y-auto` never engages, the scroll bubbles to the document, and the menu
+scrolls away with the content. Also: the scroll container must have a **bounded height**, and use
+**`svh` not `vh`** (mobile browser chrome). Non-scrolling panes get `shrink-0`. A header *inside*
+a scroll pane uses `sticky top-0` — it sticks to the pane, not the viewport.
+
+Chrome dimensions are **tokens** (`--layout-header-height`, `--app-content-height`, …) precisely
+because both the padding and the scroll math depend on them. Never hardcode them.
 
 ### 2.2 Server vs Client Components
 
@@ -168,7 +230,16 @@ Two docs govern every pixel. Read them **before** the first component, not after
 1. **`docs/branding/brand.md`** — the feel, the voice, and what the product must *never*
    feel like. Microcopy, empty states, and error text follow the voice table here.
 2. **`docs/design/design-system.md`** — the semantic tokens, type scale, spacing/radius/
-   elevation, and the component inventory with their states.
+   elevation, **the Layout section** (scroll model, layout tokens, container widths, spacing
+   rhythm), the component inventory with their states, and the **signature details** that make
+   this product look like itself.
+
+**Designing a new surface, or reshaping an existing one? Invoke the `frontend-design` skill
+first.** Tokens and states only get you to *correct* — a fully compliant screen can still look
+like every other admin template. The skill covers aesthetic direction, typography, and choices
+that don't read as templated defaults. Use it before the first component, not as a retrofit.
+Then apply the project's **signature details** from the design system; they are system-level, so
+they appear on every screen or none.
 
 Rules that follow from them:
 
@@ -176,6 +247,9 @@ Rules that follow from them:
   Brand colors are identity; components consume *roles* (`--primary`, `--destructive`,
   `--muted-fg`). That's what makes dark mode and rebranding a token remap instead of a sweep.
 - **Check the component inventory before building anything new.** If it's in the table, use it.
+  That includes the **layout primitives** — compose `PageLayout`, never hand-roll a page frame.
+- **Never hardcode a layout dimension.** Header height, sidebar width, and content height are
+  tokens; padding and scroll math derive from them.
 - **Missing a token? Propose it into `design-system.md` first, then use it.** Do not invent a
   one-off value in a component — a single hardcoded hex is how a design system starts dying.
 - **Missing a component?** Add it to the inventory table in the same PR that adds the component.
@@ -189,41 +263,49 @@ If either doc is missing or contradicts the code, **stop and say so** — don't 
 
 ### 3.1 New protected page
 
-Create `src/app/(main)/<route>/page.tsx` as a `"use client"` component; it's auto-protected by the group layout. Handle all four states:
+Create `src/app/(main)/<route>/page.tsx` as a `"use client"` component; it's auto-protected by the group layout. Compose `PageLayout` — the page supplies header content and children, **never its own frame** — and handle all four states inside it:
 
 ```tsx
 "use client";
 
-import { Package } from "lucide-react";
-import { Card, Skeleton, EmptyState } from "@libs-web/ui-components";
+import { Package, Plus } from "lucide-react";
+import { Button, Card, PageLayout, Skeleton, EmptyState } from "@libs-web/ui-components";
 import { useMyOrders } from "@libs-common/api-handler";
 
 export default function OrdersPage() {
-  const { data, isLoading } = useMyOrders();
+  const { data, isLoading, isError } = useMyOrders();
   const orders = data?.data?.items ?? [];
 
-  if (isLoading) {
-    return (
-      <div className="px-4 py-6 space-y-4 max-w-2xl mx-auto">
-        {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
-      </div>
-    );
-  }
-
-  if (orders.length === 0) {
-    return <EmptyState icon={<Package className="w-12 h-12" />} title="No orders yet" description="Your orders will appear here." />;
-  }
-
   return (
-    <div className="px-4 py-6 max-w-2xl mx-auto">
-      <h1 className="text-xl font-bold mb-6">Orders ({orders.length})</h1>
-      <div className="grid gap-4">
-        {orders.map((o) => <Card key={o.id} className="p-4">{/* … */}</Card>)}
-      </div>
-    </div>
+    <PageLayout
+      breadcrumb={[{ label: "Home", href: "/" }, { label: "Orders" }]}
+      title="Your orders"
+      subtitle="Everything you've placed, newest first."
+      contentWidth="narrow"
+      actions={<Button size="sm"><Plus className="size-4" /> New order</Button>}
+    >
+      {isLoading ? (
+        // Skeleton mirrors the loaded shape — same card height, same gap — so nothing shifts.
+        <div className="grid gap-4">
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full rounded-[var(--radius)]" />)}
+        </div>
+      ) : isError ? (
+        <EmptyState icon={<Package className="size-12" />} title="Couldn't load orders" description="Check your connection and try again." />
+      ) : orders.length === 0 ? (
+        <EmptyState icon={<Package className="size-12" />} title="No orders yet" description="Your orders will appear here." />
+      ) : (
+        <div className="grid gap-4">
+          {orders.map((o) => <Card key={o.id} className="p-4">{/* … */}</Card>)}
+        </div>
+      )}
+    </PageLayout>
   );
 }
 ```
+
+Note what the page does **not** do: no `max-w-*`, no `mx-auto`, no page padding, no bare `<h1>`. `PageLayout` owns all four. The page owns its content and its states.
+
+For a page with a fixed sub-nav beside scrolling content, swap in `SubMenuPageLayout`; for master-detail, `SelectionPanelLayout`. Both put the page in **Mode B** scroll (§2.1b) — the menu stays put, only content moves.
 
 Then add nav entries (sidebar / bottom nav) if the page needs them.
 
@@ -356,6 +438,10 @@ Import all standard primitives from `@libs-web/ui-components` (Button, Card, Inp
 - Create `tailwind.config.*` (v4 is CSS-based) or use Zod v3 APIs.
 - Use relative imports across library boundaries, or `next/navigation` in an i18n app (use `@/i18n/navigation`).
 - Hardcode a color, font, radius, or spacing value — use a token, or add one to `design-system.md` first.
+- Set `max-w-*`, `mx-auto`, or page padding in a `page.tsx` — compose `PageLayout` (§2.1a).
+- Hardcode a header height, sidebar width, or `100vh` — use the layout tokens and `svh` (§2.1b).
+- Put `overflow-y-auto` on a flex child without `min-h-0` — the scroll escapes to the document and the menu scrolls with the content.
+- Ship a screen that's merely token-correct — run the `frontend-design` skill and apply the signature details (§3.0).
 - Hardcode config that belongs in a constant/config module; use `any`; leave mutations without error handling.
 - Implement security on the client — the API enforces it; the client only mirrors it for UX.
 
@@ -366,6 +452,7 @@ Import all standard primitives from `@libs-web/ui-components` (Button, Card, Inp
 1. **Update the GitHub issue** — reference it in the PR (`Closes #N`) and move the card to **Done** on the Projects board.
 2. **Write/refresh the page doc** — add or update the relevant file under `docs/pages/` (or `docs/modules/` for a cross-cutting feature) describing the route, states, and data hooks it uses.
 3. **Confirm design-system adherence** — no raw hex/font/spacing values; any new token or component is recorded in `docs/design/design-system.md` in this same PR.
+4. **Check the layout contract** — the page composes `PageLayout` (no ad-hoc container or padding), chrome doesn't scroll with content, every `overflow-y-auto` has its `min-h-0`, and the skeleton mirrors the loaded shape.
 
 See `WORKFLOW.md` at the kit root for the full branch → PR → review → merge flow, and
 `GETTING_STARTED.md` for where this sits in the project lifecycle.

@@ -113,6 +113,9 @@ The cheapest bug to catch is the one where correct code implements the wrong thi
 | **State** | Server state → React Query. Client-only state → Redux/local. Auth state → the auth client (`useSession()`), not Redux. Forms → React Hook Form. |
 | **API access** | All calls through hooks in `@libs-common/api-handler`. No raw `fetch()`/`axios` in components. |
 | **UI reuse** | Reuse primitives from `@libs-web/ui-components` (Button, Card, Input, Modal…). Don't re-create them. |
+| **Layout contract** | The page composes `PageLayout` / `SubMenuPageLayout` / `SelectionPanelLayout`. **No `max-w-*`, `mx-auto`, or page padding in a `page.tsx`** — those belong to the layout. No bare `<h1>` standing in for a page header. |
+| **Scroll ownership** | Nav / sub-menu / panel chrome must not scroll with content. Every `overflow-y-auto` inside a flex row is paired with `min-h-0`, its non-scrolling siblings have `shrink-0`, and the region has a bounded height. Viewport units are `svh`, never `vh`. Layout dimensions come from tokens, never literals. |
+| **Visual quality** | Does it look *designed*, or like a default template? Check: consistent spacing rhythm (not arbitrary gaps), legible hierarchy (size/weight/color doing distinct jobs), the project's **signature details** applied, and empty/loading/error states actually designed rather than stubbed. Token-correct but generic is a finding, not a pass. |
 | **Shared types** | Cross-boundary types live in `@libs-common/shared-types`, not duplicated. |
 | **Route groups** | Auth pages in `(auth)/`; protected pages inside the guarded group; public pages in their own group. |
 | **Dependencies** | Library packages put framework deps (react, next, redux, react-query, zod, the auth client) in `peerDependencies`, not `dependencies`. |
@@ -125,6 +128,7 @@ The cheapest bug to catch is the one where correct code implements the wrong thi
 | **State** | React Query for server state; secure token storage (e.g. `expo-secure-store`) for auth. |
 | **Shared code** | Reuse `@libs-mobile/*` components/theme and `@libs-common` hooks; mirror web behavior, never fork the API contract. |
 | **Styling** | Use the shared theme tokens; no hard-coded colors that bypass light/dark theming. |
+| **Screen contract** | Screens compose `Screen` / `ScreenHeader` / `Section`. `Screen` owns safe areas and **exactly one** scroll container — flag a nested `ScrollView`/`FlatList`, a second `SafeAreaView`, or literal padding values. |
 
 ### Security (any single violation is a merge blocker)
 

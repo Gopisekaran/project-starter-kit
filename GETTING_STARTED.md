@@ -185,24 +185,40 @@ Words before hex codes - don't let me skip the feel.
 
 **Goal:** turn the feel into tokens and components that code can actually reference.
 
-- **Who you talk to:** the **`frontend-agent`**.
+- **Who you talk to:** the **`frontend-agent`**, plus the **`frontend-design` skill** for
+  aesthetic direction (it's what keeps the result from looking like a default template).
 - **You produce:** **`docs/design/design-system.md`** from
   [`docs-template/design/design-system.md`](docs-template/design/design-system.md) — semantic
-  tokens (light + dark), type scale, spacing/radius/elevation, component inventory with
-  states, dark mode, motion.
+  tokens (light + dark), type scale, spacing/radius/elevation, **the layout section**
+  (layout tokens, scroll model, breakpoints, container widths, spacing rhythm), the component
+  inventory including **layout primitives**, **signature details**, dark mode, motion.
 
 **Paste this into Claude Code:**
 
 ```
-Use the frontend-agent. Read docs/branding/brand.md and turn it into
-docs/design/design-system.md: map the brand colors onto semantic tokens
-(--bg, --fg, --primary, --destructive, --muted...), define the type scale,
-spacing, radius, elevation, and the component inventory with states.
-Check every fg/bg pair for WCAG AA in both light and dark.
+Use the frontend-agent, and invoke the frontend-design skill for aesthetic
+direction. Read docs/branding/brand.md and turn it into
+docs/design/design-system.md:
+
+1. Map the brand colors onto semantic tokens (--bg, --fg, --primary,
+   --destructive, --muted...). Check every fg/bg pair for WCAG AA in both themes.
+2. Define the type scale, spacing, radius, elevation.
+3. Fill the Layout section: layout tokens (header height, sidebar width,
+   --app-content-height), the scroll model, breakpoints, container widths,
+   and the spacing rhythm (which step means section gap vs card gap vs field gap).
+4. Fill the component inventory INCLUDING the layout primitives, with what
+   each one owns and whether it scrolls.
+5. Propose 3-5 signature details that will make this product look like itself,
+   and say where each applies.
 ```
 
-- **Done when:** every semantic token traces to a brand source, both themes are filled, and
-  contrast passes AA.
+- **Done when:** every semantic token traces to a brand source, both themes are filled,
+  contrast passes AA, the layout section has real values (not placeholders), and the
+  signature details are specific enough that someone could spot them on a screenshot.
+
+> **Layout is part of the design system — not something each page improvises.** The single most
+> common shell bug is the nav or sub-menu scrolling away with the content. The scroll model in
+> `design-system.md` is what prevents it, and the agents are instructed to follow it.
 
 > **This is the connection that makes the whole chain worth it.** `frontend-agent` and
 > `mobile-agent` are instructed to read `brand.md` + `design-system.md` **before writing any
@@ -409,10 +425,10 @@ Details: [`WORKFLOW.md § 6`](WORKFLOW.md#6-when-requirements-change) ·
 | 1 Discuss product | `CORE_DOCUMENT.md` | `superpowers:brainstorming` |
 | 2 Functional doc | `docs/features/<f>.md` | `superpowers:brainstorming` |
 | 3 Branding | `docs/branding/brand.md` | Claude |
-| 4 Design system | `docs/design/design-system.md` | `frontend-agent` |
+| 4 Design system + layout | `docs/design/design-system.md` | `frontend-agent` + `frontend-design` skill |
 | 5 Schema + arch | `docs/architecture/data.md`, ADRs | `architecture-agent`, `infra-deployment-agent` |
 | 6 Plan | Milestones + Issues | Claude + GitHub MCP |
-| 7 Implement | code + PR `Closes #N` | `backend` / `frontend` / `mobile`-agent, then `review-agent` |
+| 7 Implement | code + PR `Closes #N` | `backend` / `frontend` / `mobile`-agent (+ `frontend-design` for new UI), then `review-agent` |
 | 8 Test | tests green | `testing-agent` |
 | 9 Page doc | `docs/pages/<s>.md` | Claude |
 

@@ -136,6 +136,12 @@ docs/             # Repo documentation (see docs/README.md)
 - **Layout per App Profile form factor:** `desktop-first` → dense, sidebar, desktop-down.
   `responsive` → fluid/adaptive, equal at every breakpoint, drawer-collapsing nav. `mobile-first` →
   bottom-nav, thumb-first, mobile-up. `mobile-only` → the web frontend is thin/absent (mobile leads).
+- **Layout contract:** pages compose `PageLayout` (or `SubMenuPageLayout` / `SelectionPanelLayout`).
+  A `page.tsx` **never** sets its own `max-w-*`, `mx-auto`, or page padding — the layout owns them.
+- **Scroll ownership:** chrome never scrolls with content. Fixed chrome is offset with padding, not
+  margin; inner-scroll regions need a bounded height, `svh` (never `vh`), and **every
+  `overflow-y-auto` in a flex row paired with `min-h-0`** — without it the scroll escapes to the
+  document and the menu scrolls away with the content. Full model in `docs/design/design-system.md`.
 - Forms with 3+ fields use React Hook Form + `zodResolver`. Mirror backend Zod refinements on the client.
 - Wrap `useSearchParams()` in a `<Suspense>` boundary.
 - **i18n only if App Profile says so** — `english-only` ships plain strings, no next-intl.

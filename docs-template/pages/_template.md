@@ -15,7 +15,37 @@
 - **Entry points:** How users arrive (nav link / redirect / external CTA).
 - **Exit points:** Where the screen sends the user next (success / cancel / error).
 
-## 2. User journey
+## 2. Layout
+
+> What the screen is *made of*. Without this, a page doc can describe every API call and
+> validation rule and still leave the reader unable to picture the screen.
+
+- **Layout primitive:** `{{PageLayout}}` / `{{SubMenuPageLayout}}` / `{{SelectionPanelLayout}}`
+- **Container width:** `{{narrow}}` — see the design system's Layout section
+- **Scroll mode:** `{{Mode A — document scroll}}` / `{{Mode B — content pane scrolls alone}}`
+- **Page header:** {{breadcrumb + title + subtitle + primary action}}
+
+```
+{{ ┌──────────────────────────────────────────┐
+   │ Breadcrumb                               │
+   │ Title                        [ Action ]  │
+   │ Subtitle                                 │
+   ├──────────────────────────────────────────┤
+   │ [ Toolbar: search · filter · view ]      │
+   ├──────────────────────────────────────────┤
+   │  ┌────────────┐  ┌────────────┐          │
+   │  │ Card       │  │ Card       │   ← grid │
+   │  └────────────┘  └────────────┘          │
+   └──────────────────────────────────────────┘ }}
+```
+
+| Region | Contents | Notes |
+|---|---|---|
+| {{Header}} | {{title, subtitle, "New" button}} | {{collapses on scroll}} |
+| {{Toolbar}} | {{search, status filter}} | {{sticky within content}} |
+| {{Content}} | {{card grid, 1 col → 3 col at `lg`}} | {{the only scroller}} |
+
+## 3. User journey
 
 1. Step 1 — …
 2. Step 2 — …
@@ -23,7 +53,7 @@
 
 > Include screen-state branches (e.g. "form state", "loading state", "error state").
 
-## 3. Fields (if form-bearing)
+## 4. Fields (if form-bearing)
 
 | Field | Label | Type | Required | Autocomplete | Validation | Error message |
 |---|---|---|---|---|---|---|
@@ -32,7 +62,7 @@
 
 Validation source of truth: `<file>`
 
-## 4. APIs used
+## 5. APIs used
 
 | # | Action | Method | Endpoint | Request | Response | Error codes |
 |---|---|---|---|---|---|---|
@@ -40,31 +70,31 @@ Validation source of truth: `<file>`
 
 > List every network call the screen makes, including optional or background ones.
 
-## 5. State & side effects
+## 6. State & side effects
 
 - Server state / form state / global state usage.
 - Storage / cookies touched.
 - Toasts / analytics events emitted.
 
-## 6. Validations & rules
+## 7. Validations & rules
 
 - Client-side validation rules and where they mirror the backend.
 - Business rules enforced on this screen.
 
-## 7. Accessibility
+## 8. Accessibility
 
 - ARIA attributes used (`aria-required`, `aria-invalid`, `aria-describedby`, `role="alert"`, …).
 - Focus management (auto-focus, trap, restoration).
 - Keyboard flow: Tab order + shortcut keys.
 - Screen-reader notes.
 
-## 8. Responsive & theming
+## 9. Responsive & theming
 
 - Smallest tested viewport; layout breakpoints.
 - Dark-mode / theme behavior.
 - Safe-area / keyboard-overlap handling (if mobile).
 
-## 9. Edge cases
+## 10. Edge cases
 
 - Double-submit / in-flight guard.
 - Paste / autofill behavior.
@@ -72,17 +102,17 @@ Validation source of truth: `<file>`
 - Already-authenticated / already-completed paths.
 - Empty / error / rate-limited states.
 
-## 10. Analytics
+## 11. Analytics
 
 - Events fired and their properties.
 - Where they're defined: `<file:line>`
 
-## 11. Known gaps / TODOs
+## 12. Known gaps / TODOs
 
 - Items scheduled for later.
 - Open bugs with issue links.
 
-## 12. Related docs
+## 13. Related docs
 
 - Frontend: `../architecture/frontend.md`
 - API: `../api/README.md`

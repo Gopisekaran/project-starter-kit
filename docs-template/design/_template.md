@@ -44,11 +44,22 @@
 - **Behavior:** > …
 - **Notes:** > …
 
-## Responsive
+## Layout & responsive
 
-> Breakpoints and how the layout adapts. Mobile-first.
+> Project-wide breakpoints, container widths, and the scroll model live in
+> [`./design-system.md`](./design-system.md). Record only this surface's **deltas** here —
+> don't restate the shared values, or the two will drift.
 
-- {{breakpoint}} → {{layout change}}
+- **Layout primitive:** {{`PageLayout` / `SubMenuPageLayout` / `SelectionPanelLayout`}}
+- **Container width:** {{narrow / centered / full}}
+- **Scroll mode:** {{Mode A — document scroll / Mode B — content pane scrolls alone}}
+
+| Breakpoint | Layout change on this surface |
+|---|---|
+| {{base (mobile)}} | {{single column; sub-nav becomes a horizontal pill scroller}} |
+| {{md}} | {{…}} |
+| {{lg}} | {{sub-nav becomes a fixed left rail; content scrolls alone}} |
+| {{xl}} | {{…}} |
 
 ## Dark mode
 
