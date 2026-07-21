@@ -33,7 +33,7 @@ It requires `marked` (resolved via `createRequire`) and is wired downstream by `
 
 | Kind | Files | Rule when editing |
 |---|---|---|
-| **Process prose** — read by humans, stays in the kit | `README.md`, `INITIALISE.md`, `GETTING_STARTED.md`, `SETUP.md`, `WORKFLOW.md`, `TECH_STACK.md` | Must stay internally consistent — see the cross-reference web below |
+| **Process prose** — read by humans, stays in the kit | `README.md`, `INITIALISE.md`, `GETTING_STARTED.md`, `SETUP.md`, `WORKFLOW.md`, `COORDINATION.md`, `TECH_STACK.md` | Must stay internally consistent — see the cross-reference web below |
 | **Templates** — copied into a new repo | `CLAUDE.md.template`, `PROJECT_PLAN.md`, `CORE_DOCUMENT.md`, `docs-template/**`, `.claude/agents/**`, `github/**`, `scripts/**` | Must stay placeholder-driven and domain-neutral |
 
 `github/` is deliberately **not** `.github/` — the kit's own repo must not activate its own CI,
@@ -84,6 +84,12 @@ matching change elsewhere:
   (including the "which of the four gets confused" table) and in `docs-template/README.md`'s
   navigation. Adding a folder means adding it to all three, and to the `CATEGORY_META` ordering
   in `scripts/build-docs-viewer.mjs`.
+- **Multi-session coordination** — the full model is `COORDINATION.md` (kit process prose); the live
+  mailbox is `docs-template/coordination.md` → `docs/coordination.md`. `WORKFLOW.md § 8` carries the
+  pointer + two invariants, `backend-agent.md § 4.4` states the migrations-as-lock case at the point
+  of use, `SETUP.md` step 2 copies the mailbox, and `CLAUDE.md.template`'s Environment Variables +
+  Pointers name the per-session offsets. `README.md` and `GETTING_STARTED.md` index it. A change to
+  the coordination rules touches `COORDINATION.md` first, then whichever of these restate it.
 - **Workspace layout** — the `apps/*` + `libs-*` menu appears in both `SETUP.md` step 1 and
   `CLAUDE.md.template`. Keep them identical.
 - **Tracking model** — milestones-as-versions, `phase:` as scope, the Status/Deploy board fields,
@@ -107,7 +113,9 @@ Match these — the kit's voice is part of its product:
 These are stated in `TECH_STACK.md` and `CLAUDE.md.template` and are load-bearing — don't soften
 them when editing templates or agent files:
 
-- **Drizzle migrations only; `db:push` is banned** — there is no such script downstream.
+- **Drizzle migrations only; `db:push` is banned** — there is no such script downstream. The
+  migration series is also append-only, so under parallel work it's a one-writer-at-a-time lock
+  (`COORDINATION.md § 2`).
 - **UUIDv7 primary keys**, not auto-increment or hand-rolled strings.
 - **Statuses/enums live in lookup tables + FK**, not `text` enums or `pgEnum`.
 - **Better Auth owns its `user` / `session` / `account` / `verification` tables** (singular) —
@@ -126,6 +134,8 @@ them when editing templates or agent files:
 - `GETTING_STARTED.md` — the nine-stage lifecycle and the agent-per-stage cheat sheet.
 - `SETUP.md` — the ten setup steps for a new repo.
 - `WORKFLOW.md` — day-to-day loop, Definition of Done, change-request loop.
+- `COORDINATION.md` — how to work the repo when several sessions run in parallel (isolation, the
+  migration lock, lanes, shared-branch hygiene, the committed mailbox).
 - `.claude/agents/*.md` — the seven specialists, each scoped to what it will and won't touch.
 - `.claude/agents/references/*.md` — frontend UI architecture the agents read: error boundaries and
   the error taxonomy, form structure, page archetypes.

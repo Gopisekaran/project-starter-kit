@@ -346,7 +346,8 @@ Use the review-agent on my staged changes before I commit.
   `git log` answers *why* without an archaeology dig.
 - **Done when:** `review-agent` has no unaddressed Critical/Major findings and CI is green.
 
-Full per-task detail: **[`WORKFLOW.md`](WORKFLOW.md)**.
+Full per-task detail: **[`WORKFLOW.md`](WORKFLOW.md)**. Running this loop in **several sessions at
+once**? Each branch also gets its own working copy and database — **[`COORDINATION.md`](COORDINATION.md)**.
 
 **Next:** Stage 8 (concurrently) then Stage 9.
 
@@ -468,6 +469,7 @@ each defines what it will and won't touch.
 | The stack (already decided) | [`TECH_STACK.md`](TECH_STACK.md) |
 | Setup commands | [`SETUP.md`](SETUP.md) |
 | Day-to-day task loop, Definition of Done | [`WORKFLOW.md`](WORKFLOW.md) |
+| Running several sessions/agents at once | [`COORDINATION.md`](COORDINATION.md) |
 | Milestones, versioning, issue decomposition | [`PROJECT_PLAN.md`](PROJECT_PLAN.md) |
 | Labels, board, milestones via `gh` | [`github/projects-board.md`](github/projects-board.md) |
 | The docs skeleton | [`docs-template/README.md`](docs-template/README.md) |

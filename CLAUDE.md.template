@@ -187,6 +187,8 @@ _…_
 - **Docs:** `docs/README.md` (entry point) — overview, features, branding, architecture, API, modules, pages, decisions.
 - **Agents:** `.claude/agents/*.md` — frontend / backend / mobile / architecture / infra / review / testing specialists.
 - **Workflow:** `WORKFLOW.md` — tracking, execution flow, the Definition of Done loop, and the change-request loop.
+- **Parallel sessions:** `COORDINATION.md` + the live mailbox `docs/coordination.md` — working-copy
+  isolation, the migration lock, lanes, and shared-branch hygiene when more than one session runs at once.
 
 ## Formatting
 
@@ -205,3 +207,9 @@ Copy `.env.example` to `.env`. Required at minimum:
 - `NEXT_PUBLIC_API_URL` (web) / `EXPO_PUBLIC_API_URL` (mobile)
 
 {{Add provider keys as integrations are switched on: email, OTP, push, payments, realtime.}}
+
+> **Running a parallel session?** Give this `.env` its own runtime state: a separate `DATABASE_URL`
+> (its own database, e.g. `app_dev_s2`), a separate `REDIS_URL` (its own logical DB or port), offset
+> app ports, and the `BETTER_AUTH_URL` / CORS / `NEXT_PUBLIC_API_URL` values that derive from them —
+> **offset together, or a missed reference fails in a way that looks like something else.** Record
+> your offsets in `docs/coordination.md`. Full model: `COORDINATION.md § 1`.

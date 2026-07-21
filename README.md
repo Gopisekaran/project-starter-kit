@@ -22,6 +22,7 @@ Nothing here is tied to any specific product.
 | [`GETTING_STARTED.md`](GETTING_STARTED.md)                   | **Then here.** The nine-stage flow from empty repo to shipped feature, and which agent to use at each stage. |
 | [`TECH_STACK.md`](TECH_STACK.md)                             | The canonical stack every project adopts, plus the per-project decisions to make. |
 | [`WORKFLOW.md`](WORKFLOW.md)                                 | Operating model: docs, tracking, execution flow, the Definition of Done loop, and the change-request loop. |
+| [`COORDINATION.md`](COORDINATION.md)                         | Running several sessions/agents against the repo at once: working-copy isolation, the migration lock, lanes, shared-branch hygiene, and the committed mailbox. |
 | [`PROJECT_PLAN.md`](PROJECT_PLAN.md)                         | Plan template: milestones as versions, exit criteria, feature docs → issues.       |
 | [`CORE_DOCUMENT.md`](CORE_DOCUMENT.md)                       | Kickoff "Application Definition" template to align the team before building.       |
 | [`CLAUDE.md.template`](CLAUDE.md.template)                   | Genericized `CLAUDE.md` for a new repo — rename and fill placeholders.             |

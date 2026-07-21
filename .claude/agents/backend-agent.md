@@ -448,6 +448,12 @@ Schema reaches every database (dev included) through a generated, committed migr
 DB and the file tree; untangling that two-track drift costs far more than one `db:generate`. There
 is no `db:push` script.
 
+**Parallel sessions:** the migration series is append-only, so it's a one-writer-at-a-time lock.
+Pull latest *immediately* before `db:generate`, and commit + push the migration the moment it
+exists. If another session's migration landed while you worked, pull, drop yours, and re-generate
+so it comes after theirs — two concurrent `db:generate`s collide the numbering and break the shared
+branch. See `COORDINATION.md § 2`.
+
 ---
 
 ## 5. Security

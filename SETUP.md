@@ -38,9 +38,14 @@ packages:
   - "libs-*"
 ```
 
+> **Planning to run several sessions/agents against this repo at once?** Give each its own working
+> copy (a `git worktree` or a separate clone) and its own `.env` on offset ports — never two in one
+> directory. Set that up before you build: [`COORDINATION.md`](COORDINATION.md).
+
 ## 2. Copy the templates in
 
-- Copy `docs-template/` → `docs/`.
+- Copy `docs-template/` → `docs/` (this includes `docs-template/coordination.md` → `docs/coordination.md`,
+  the live mailbox for parallel sessions — see [`COORDINATION.md`](COORDINATION.md)).
 - Copy `.claude/agents/` (from the kit) → `.claude/agents/`, **including `agents/references/`** —
   the frontend agent reads those files by relative path, so leaving them behind gives you an agent
   that points at nothing.

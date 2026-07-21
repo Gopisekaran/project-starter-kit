@@ -63,6 +63,9 @@ Status updated on the board (In Review → Done)
 Create the issue on GitHub, pull it into the terminal, let the agent implement it, then
 move the board status forward as it progresses.
 
+> **Running several sessions at once?** Each takes its own working copy and its own branch — see
+> §8 and [`COORDINATION.md`](COORDINATION.md) before you start.
+
 ## 4. Definition of Done loop (IMPORTANT)
 
 When a page, feature, or task is completed, **both** of these must happen — not just the code merge:
@@ -192,3 +195,21 @@ gh issue edit 42 --milestone "v0.1"             # schedule it
 
 Scope, decomposition, and exit criteria live in [`PROJECT_PLAN.md`](PROJECT_PLAN.md).
 **A milestone slipping moves issues out, not the date** — a version means a scope.
+
+## 8. Working in parallel (multi-session)
+
+Everything above is the loop for **one** worker. The moment two sessions — human or agent — touch
+the same repo at once, two invariants carry the most weight, and both are set up before you type
+any code:
+
+1. **One issue = one branch = one working copy.** Each session takes its own `git worktree` (or
+   clone) with its own `.env` on offset ports and its own database. Two sessions in one working
+   directory overwrite each other's files and fight over git state; two sharing one database corrupt
+   each other's schema.
+2. **The migration series is a lock.** It's append-only, so only one session writes it at a time —
+   pull right before `db:generate`, push the migration immediately. Two concurrent generates collide
+   the numbering and break the shared branch.
+
+The full model — isolation, clean-state verification, staying in your lane, shared-branch hygiene,
+and the committed **mailbox** (`docs/coordination.md`) that replaces relayed chat — is in
+[`COORDINATION.md`](COORDINATION.md). Read it before starting a parallel session.

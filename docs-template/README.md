@@ -43,6 +43,11 @@ change**, or you're reading a stale snapshot.
 - **Writing any UI?** → [`branding/`](./branding/README.md) + [`design/design-system.md`](./design/design-system.md) — read both first
 - **Operations/runbooks?** → [`operations/`](./operations/)
 - **Design specs for one surface?** → [`design/`](./design/)
+- **Several sessions on the repo at once?** → [`coordination.md`](./coordination.md) — the live mailbox
+
+> The [`coordination.md`](./coordination.md) mailbox is the durable channel for parallel sessions
+> (active sessions, offset registry, resource locks, handoffs). The rules behind it live in the
+> kit's `COORDINATION.md`.
 
 ## Quick facts
 
